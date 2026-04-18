@@ -1,0 +1,37 @@
+{
+  "name": "rndr-2d",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.3",
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "pnpm typecheck && pnpm test",
+    "demo:live": "tsx examples/live-demo.ts",
+    "demo:overview": "tsx examples/overview.ts",
+    "demo:review": "tsx examples/review-showcase.ts",
+    "demo:zoo": "tsx examples/feature-zoo.ts",
+    "review:artifacts": "tsx scripts/generate-review-artifacts.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}
