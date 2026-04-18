@@ -1,6 +1,5 @@
 import {
   DEFAULT_HEX_LAYOUT,
-  HEX_FACINGS,
   Sprite,
   Surface,
   ansiColor,
@@ -26,6 +25,7 @@ import {
   type SurfaceDiffStats,
   type SurfaceStats
 } from "../src/index.js";
+import { DEMO_HEX_FACING_LABELS, buildDemoHexShipSet } from "./demo-hex-ships.js";
 
 export type ZooPage = "play" | "hex" | "style";
 
@@ -130,63 +130,6 @@ const PALETTES = [
     accent: 51
   }
 ] as const;
-
-const HEX_FACING_LABELS: Record<HexFacing, string> = {
-  n: "N",
-  ne: "NE",
-  se: "SE",
-  s: "S",
-  sw: "SW",
-  nw: "NW"
-};
-
-function buildHexShipSet(color: number, cockpitGlyph: string) {
-  const style = {
-    foreground: ansiColor(color),
-    bold: true
-  } satisfies CellStyle;
-  const body = Sprite.fromText({
-    lines: [" /-\\ ", `| ${cockpitGlyph} |`, " \\_/ "],
-    transparentGlyphs: [],
-    style
-  });
-
-  return Object.fromEntries(
-    HEX_FACINGS.map((facing) => {
-      const surface = new Surface(9, 5);
-      surface.blit(body, { x: 2, y: 1 });
-
-      switch (facing) {
-        case "n":
-          surface.drawText({ x: 4, y: 0 }, "^", style);
-          break;
-        case "ne":
-          surface.drawText({ x: 6, y: 0 }, "/", style);
-          surface.drawText({ x: 8, y: 1 }, ">", style);
-          break;
-        case "se":
-          surface.drawText({ x: 8, y: 3 }, ">", style);
-          surface.drawText({ x: 6, y: 4 }, "\\", style);
-          break;
-        case "s":
-          surface.drawText({ x: 4, y: 4 }, "v", style);
-          break;
-        case "sw":
-          surface.drawText({ x: 0, y: 3 }, "<", style);
-          surface.drawText({ x: 2, y: 4 }, "/", style);
-          break;
-        case "nw":
-          surface.drawText({ x: 2, y: 0 }, "\\", style);
-          surface.drawText({ x: 0, y: 1 }, "<", style);
-          break;
-        default:
-          break;
-      }
-
-      return [facing, Sprite.fromRaster(surface)];
-    })
-  ) as Record<HexFacing, Sprite>;
-}
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -488,8 +431,8 @@ function createPulseSurface(target: Point, paletteIndex: number, elapsedMs: numb
 function createPlayPage(input: ZooFrameInput) {
   const palette = PALETTES[input.state.paletteIndex] ?? PALETTES[0];
   const layout = DEFAULT_HEX_LAYOUT;
-  const playerShips = buildHexShipSet(palette.player, "O");
-  const enemyShips = buildHexShipSet(palette.enemy, "X");
+  const playerShips = buildDemoHexShipSet(palette.player, "O");
+  const enemyShips = buildDemoHexShipSet(palette.enemy, "X");
   const board = createHexGridSprite({
     board: PLAY_BOARD_SIZE,
     layout,
@@ -528,7 +471,7 @@ function createPlayPage(input: ZooFrameInput) {
   hudLine(hud, 4, "palette", palette.name);
   hudLine(hud, 5, "mode", input.state.autoplay ? "autoplay" : "manual");
   hudLine(hud, 6, "selector", `${input.state.selector.q},${input.state.selector.r}`);
-  hudLine(hud, 7, "facing", HEX_FACING_LABELS[input.state.playerFacing] ?? "?");
+  hudLine(hud, 7, "facing", DEMO_HEX_FACING_LABELS[input.state.playerFacing] ?? "?");
   hudLine(hud, 8, "pulse", input.state.showPulse ? "on" : "off");
   hudLine(hud, 9, "trail", input.state.showTrail ? "on" : "off");
   hudLine(hud, 10, "stars", input.state.showStars ? "on" : "off");
@@ -776,7 +719,7 @@ function createStylePage(input: ZooFrameInput) {
     inverse: true
   });
 
-  const facingShips = buildHexShipSet(palette.player, "O");
+  const facingShips = buildDemoHexShipSet(palette.player, "O");
   const gallery = new Surface(FRAME_SIZE.width, FRAME_SIZE.height);
   gallery.drawText({ x: 2, y: 13 }, "6-way Hex Facing: N  NE  SE / S  SW  NW", {
     foreground: ansiColor(255),

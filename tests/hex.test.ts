@@ -3,14 +3,21 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_HEX_LAYOUT,
   HEX_FACINGS,
+  createHexFacingSpriteSet,
   Surface,
   createHexGridSprite,
   drawHexTextBlock,
+  getHexFacingSprite,
+  getHexFacingValue,
+  hexFacingName,
   hexFacingFromScreenDelta,
+  mapHexFacings,
+  normalizeHexFacing,
   projectHexCenter,
   projectHexContentBox,
   projectHexContentRows,
   rotateHexFacing,
+  Sprite,
   scaleHexLayout
 } from "../src/index.js";
 
@@ -119,7 +126,35 @@ describe("hex primitives", () => {
   it("rotates hex facings cyclically", () => {
     expect(rotateHexFacing("n", 1)).toBe("ne");
     expect(rotateHexFacing("n", 3)).toBe("s");
+    expect(rotateHexFacing("northEast", -1)).toBe("n");
     expect(rotateHexFacing("se", -1)).toBe("ne");
     expect(rotateHexFacing("nw", 2)).toBe("ne");
+  });
+
+  it("normalizes consumer-facing long hex names", () => {
+    expect(normalizeHexFacing("north")).toBe("n");
+    expect(normalizeHexFacing("southWest")).toBe("sw");
+    expect(hexFacingName("ne")).toBe("northEast");
+    expect(hexFacingFromScreenDelta({ layout: DEFAULT_HEX_LAYOUT, dx: 0, dy: 0, fallback: "southEast" })).toBe("se");
+  });
+
+  it("maps values across all six facings and resolves long-form lookups", () => {
+    const labels = mapHexFacings((facing, index) => `${index}:${hexFacingName(facing)}`);
+
+    expect(labels.n).toBe("0:north");
+    expect(labels.sw).toBe("4:southWest");
+    expect(getHexFacingValue(labels, "northWest")).toBe("5:northWest");
+  });
+
+  it("builds and retrieves sprite sets by hex facing", () => {
+    const sprites = createHexFacingSpriteSet((facing) =>
+      Sprite.fromText({
+        lines: [hexFacingName(facing)],
+        transparentGlyphs: []
+      })
+    );
+
+    expect(getHexFacingSprite(sprites, "n").toLines()[0]).toBe("north");
+    expect(getHexFacingSprite(sprites, "southEast").toLines()[0]).toBe("southEast");
   });
 });

@@ -80,6 +80,7 @@ The first geometry primitive is a hex-grid projector:
 - coordinate projection from axial board space to terminal cells
 - helper labeling at tile centers
 - six-way facing helpers derived from projected terminal movement
+- canonical short facing ids plus long-form compatibility for consumer contracts
 - scalable layouts that can generate larger pointy hexes from the same base geometry
 - conservative content boxes plus full row-span content regions for multi-line text inside larger hexes
 
@@ -105,6 +106,7 @@ These abstractions should remain stable and generic:
 These are allowed to be opinionated if they are still reusable across games:
 
 - hex layouts
+- hex facing maps and sprite sets
 - sprite glyph remappers for rotation
 - tile templates
 - animation helpers based on pure interpolation

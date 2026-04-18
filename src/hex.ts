@@ -20,6 +20,34 @@ export const HEX_FACINGS = ["n", "ne", "se", "s", "sw", "nw"] as const;
 
 export type HexFacing = (typeof HEX_FACINGS)[number];
 
+export const HEX_FACING_NAMES = ["north", "northEast", "southEast", "south", "southWest", "northWest"] as const;
+
+export type HexFacingName = (typeof HEX_FACING_NAMES)[number];
+
+export type HexFacingLike = HexFacing | HexFacingName;
+
+export type HexFacingMap<T> = Record<HexFacing, T>;
+
+export type HexFacingSpriteSet = HexFacingMap<Sprite>;
+
+export const HEX_FACING_NAME_BY_ID: Record<HexFacing, HexFacingName> = {
+  n: "north",
+  ne: "northEast",
+  se: "southEast",
+  s: "south",
+  sw: "southWest",
+  nw: "northWest"
+};
+
+export const HEX_FACING_ID_BY_NAME: Record<HexFacingName, HexFacing> = {
+  north: "n",
+  northEast: "ne",
+  southEast: "se",
+  south: "s",
+  southWest: "sw",
+  northWest: "nw"
+};
+
 export interface HexTileTemplate {
   rows: readonly string[];
   fillGlyph?: string;
@@ -78,6 +106,14 @@ function facingVector(layout: HexLayout, facing: HexFacing): Point {
     default:
       return { x: 0, y: -layout.rowStep };
   }
+}
+
+function isHexFacing(value: string): value is HexFacing {
+  return (HEX_FACINGS as readonly string[]).includes(value);
+}
+
+function isHexFacingName(value: string): value is HexFacingName {
+  return (HEX_FACING_NAMES as readonly string[]).includes(value);
 }
 
 function assertBoardSize(board: HexBoardSize) {
@@ -361,11 +397,48 @@ export function scaleHexLayout(layout: HexLayout, scale: number): HexLayout {
   };
 }
 
-export function rotateHexFacing(facing: HexFacing, steps: number) {
-  const index = HEX_FACINGS.indexOf(facing);
+export function normalizeHexFacing(facing: HexFacingLike): HexFacing {
+  if (isHexFacing(facing)) {
+    return facing;
+  }
+
+  if (isHexFacingName(facing)) {
+    return HEX_FACING_ID_BY_NAME[facing];
+  }
+
+  throw new Error(`Unknown hex facing: ${String(facing)}`);
+}
+
+export function hexFacingName(facing: HexFacingLike): HexFacingName {
+  return HEX_FACING_NAME_BY_ID[normalizeHexFacing(facing)];
+}
+
+export function mapHexFacings<T>(build: (facing: HexFacing, index: number) => T): HexFacingMap<T> {
+  return Object.fromEntries(
+    HEX_FACINGS.map((facing, index) => [facing, build(facing, index)])
+  ) as HexFacingMap<T>;
+}
+
+export function createHexFacingSpriteSet(
+  build: (facing: HexFacing, index: number) => Sprite
+): HexFacingSpriteSet {
+  return mapHexFacings(build);
+}
+
+export function getHexFacingValue<T>(map: HexFacingMap<T>, facing: HexFacingLike): T {
+  return map[normalizeHexFacing(facing)];
+}
+
+export function getHexFacingSprite(set: HexFacingSpriteSet, facing: HexFacingLike) {
+  return getHexFacingValue(set, facing);
+}
+
+export function rotateHexFacing(facing: HexFacingLike, steps: number) {
+  const normalizedFacing = normalizeHexFacing(facing);
+  const index = HEX_FACINGS.indexOf(normalizedFacing);
 
   if (index < 0) {
-    throw new Error(`Unknown hex facing: ${facing}`);
+    throw new Error(`Unknown hex facing: ${String(facing)}`);
   }
 
   const remainder = steps % HEX_FACINGS.length;
@@ -377,10 +450,10 @@ export function hexFacingFromScreenDelta(input: {
   dx: number;
   dy: number;
   layout?: HexLayout;
-  fallback?: HexFacing;
+  fallback?: HexFacingLike;
 }) {
   const layout = input.layout ?? DEFAULT_HEX_LAYOUT;
-  const fallback = input.fallback ?? "n";
+  const fallback = normalizeHexFacing(input.fallback ?? "n");
 
   if (input.dx === 0 && input.dy === 0) {
     return fallback;

@@ -42,14 +42,23 @@ export {
 export type { PlainRenderOptions, SurfaceDiffStats, SurfaceStats } from "./debug.js";
 
 export {
+  createHexFacingSpriteSet,
   createHexGridSprite,
   DEFAULT_HEX_LAYOUT,
   DEFAULT_HEX_TILE_TEMPLATE,
   drawHexLabel,
   drawHexTextBlock,
   HEX_FACINGS,
+  HEX_FACING_ID_BY_NAME,
+  HEX_FACING_NAME_BY_ID,
+  HEX_FACING_NAMES,
+  getHexFacingSprite,
+  getHexFacingValue,
+  hexFacingName,
   hexFacingFromScreenDelta,
   hexBoardSize,
+  mapHexFacings,
+  normalizeHexFacing,
   projectHexCenter,
   projectHexContentBox,
   projectHexContentRows,
@@ -60,6 +69,10 @@ export {
 export type {
   AxialCoord,
   HexFacing,
+  HexFacingLike,
+  HexFacingMap,
+  HexFacingName,
+  HexFacingSpriteSet,
   HexBoardSize,
   HexLayout,
   HexTileTemplate

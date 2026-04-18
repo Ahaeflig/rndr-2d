@@ -1,6 +1,5 @@
 import {
   DEFAULT_HEX_LAYOUT,
-  HEX_FACINGS,
   Sprite,
   Surface,
   ansiColor,
@@ -18,6 +17,7 @@ import {
   type SurfaceDiffStats,
   type SurfaceStats
 } from "../src/index.js";
+import { buildDemoHexShipSet } from "./demo-hex-ships.js";
 
 const FRAME_SIZE = { width: 78, height: 24 } as const;
 const BOARD_SIZE = { cols: 6, rows: 4 } as const;
@@ -71,56 +71,8 @@ const ENEMY_PATH: readonly AxialCoord[] = [
 const OBJECTIVE_HEX = { q: 2, r: 1 } as const;
 const ESCORT_HEX = { q: 3, r: 2 } as const;
 
-function buildShipSet(color: number, cockpitGlyph: string) {
-  const style = {
-    foreground: ansiColor(color),
-    bold: true
-  } satisfies CellStyle;
-  const body = Sprite.fromText({
-    lines: [" /-\\ ", `| ${cockpitGlyph} |`, " \\_/ "],
-    transparentGlyphs: [],
-    style
-  });
-
-  return Object.fromEntries(
-    HEX_FACINGS.map((facing) => {
-      const surface = new Surface(9, 5);
-      surface.blit(body, { x: 2, y: 1 });
-
-      switch (facing) {
-        case "n":
-          surface.drawText({ x: 4, y: 0 }, "^", style);
-          break;
-        case "ne":
-          surface.drawText({ x: 6, y: 0 }, "/", style);
-          surface.drawText({ x: 8, y: 1 }, ">", style);
-          break;
-        case "se":
-          surface.drawText({ x: 8, y: 3 }, ">", style);
-          surface.drawText({ x: 6, y: 4 }, "\\", style);
-          break;
-        case "s":
-          surface.drawText({ x: 4, y: 4 }, "v", style);
-          break;
-        case "sw":
-          surface.drawText({ x: 0, y: 3 }, "<", style);
-          surface.drawText({ x: 2, y: 4 }, "/", style);
-          break;
-        case "nw":
-          surface.drawText({ x: 2, y: 0 }, "\\", style);
-          surface.drawText({ x: 0, y: 1 }, "<", style);
-          break;
-        default:
-          break;
-      }
-
-      return [facing, Sprite.fromRaster(surface)];
-    })
-  ) as Record<HexFacing, Sprite>;
-}
-
-const PLAYER_SHIPS = buildShipSet(214, "O");
-const ENEMY_SHIPS = buildShipSet(81, "X");
+const PLAYER_SHIPS = buildDemoHexShipSet(214, "O");
+const ENEMY_SHIPS = buildDemoHexShipSet(81, "X");
 
 const BOARD_SPRITE = createHexGridSprite({
   board: BOARD_SIZE,

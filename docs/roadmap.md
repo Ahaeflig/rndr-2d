@@ -22,6 +22,8 @@ Likely work:
 - model one `agent-game` board frame entirely through `Surface`/`Sprite`
 - port hex board background generation
 - port unit token and overlay composition
+- smooth contract-facing seams such as facing-name compatibility and shared
+  facing-indexed asset helpers
 - add missing primitives discovered during the port
 
 ## Phase 2: Animation Primitives
@@ -57,4 +59,3 @@ Possible directions:
 - lighting and fog approximations in text
 - particle-style effects
 - palette utilities
-

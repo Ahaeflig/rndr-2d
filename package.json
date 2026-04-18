@@ -24,6 +24,7 @@
     "demo:overview": "tsx examples/overview.ts",
     "demo:review": "tsx examples/review-showcase.ts",
     "demo:zoo": "tsx examples/feature-zoo.ts",
+    "prepare": "pnpm build",
     "review:artifacts": "tsx scripts/generate-review-artifacts.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"

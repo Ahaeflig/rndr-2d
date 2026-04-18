@@ -28,6 +28,7 @@ The initial scaffold includes:
 - quarter-turn sprite rotation with glyph remapping
 - a reusable hex-grid primitive with label projection
 - six-way hex-facing helpers for projected terminal movement
+- compatibility helpers for long-form hex facing names used by consumers
 - parametric hex scaling and multi-line hex content boxes
 
 Current non-goals for this first cut:
@@ -148,7 +149,9 @@ The hex module is now explicitly parametric. The core exports include:
 
 - `scaleHexLayout(layout, scale)`: enlarge a layout by an integer scale factor
 - `HEX_FACINGS`, `rotateHexFacing(...)`: represent and cycle through the six facings of the pointy hex projection
+- `HEX_FACING_NAMES`, `normalizeHexFacing(...)`, `hexFacingName(...)`: bridge between canonical short ids (`n`, `ne`, ...) and consumer-friendly names (`north`, `northEast`, ...)
 - `hexFacingFromScreenDelta(...)`: classify projected movement into one of the six hex facings
+- `mapHexFacings(...)`, `createHexFacingSpriteSet(...)`, `getHexFacingValue(...)`: build reusable facing-indexed assets without rewriting the same six-way boilerplate
 - `projectHexContentBox(layout, coord)`: find a conservative rectangular text box inside a hex
 - `projectHexContentRows(layout, coord)`: find the full shaped row-by-row text spans inside a hex
 - `drawHexTextBlock(...)`: render clipped/aligned multi-line content across the full usable hex interior
@@ -158,3 +161,22 @@ The hex module is now explicitly parametric. The core exports include:
 The fastest proof path is `pnpm demo:zoo`, then switch to page `2` and use `[` / `]`.
 Larger scales are generated as clean pointy hexes with single-cell borders rather
 than nearest-neighbor duplication of the base raster.
+
+## Consumer Notes
+
+`rndr-2d` keeps canonical hex ids short inside the renderer (`n`, `ne`, `se`,
+`s`, `sw`, `nw`), but accepts long-form names when that matches consumer
+contracts better:
+
+```ts
+normalizeHexFacing("northEast"); // "ne"
+rotateHexFacing("southWest", 1); // "nw"
+```
+
+That should make `agent-game` integration less noisy, because its existing
+contracts and CLI renderer already use `north`, `northEast`, `southEast`,
+`south`, `southWest`, and `northWest`.
+
+The package also runs `pnpm build` from `prepare`, so a branch or git
+dependency has the `dist/` artifacts it exports without requiring a separate
+manual build step first.

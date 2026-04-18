@@ -14,6 +14,8 @@ These are the initial quality criteria for the library.
   coordinates.
 - Six-way hex-facing classification remains stable for equivalent projected
   movement deltas.
+- Long-form consumer-facing hex names normalize to the same canonical facings
+  as short internal ids.
 - Scaled hex layouts preserve predictable step sizes and content-box geometry.
 - Parametric hex scaling keeps a single clean outer outline instead of repeated
   border strokes.
