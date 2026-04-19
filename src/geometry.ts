@@ -19,3 +19,35 @@ export function pointInRect(point: Point, rect: Rect) {
   );
 }
 
+export function plotLinePoints(from: Point, to: Point): Point[] {
+  let x0 = Math.round(from.x);
+  let y0 = Math.round(from.y);
+  const x1 = Math.round(to.x);
+  const y1 = Math.round(to.y);
+  const points: Point[] = [];
+  const dx = Math.abs(x1 - x0);
+  const sx = x0 < x1 ? 1 : -1;
+  const dy = -Math.abs(y1 - y0);
+  const sy = y0 < y1 ? 1 : -1;
+  let error = dx + dy;
+
+  while (true) {
+    points.push({ x: x0, y: y0 });
+
+    if (x0 === x1 && y0 === y1) {
+      return points;
+    }
+
+    const doubledError = error * 2;
+
+    if (doubledError >= dy) {
+      error += dy;
+      x0 += sx;
+    }
+
+    if (doubledError <= dx) {
+      error += dx;
+      y0 += sy;
+    }
+  }
+}

@@ -3,12 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_HEX_LAYOUT,
   HEX_FACINGS,
+  ansiColor,
   createHexFacingSpriteSet,
   Surface,
   createHexGridSprite,
   drawHexTextBlock,
   getHexFacingSprite,
   getHexFacingValue,
+  hexFacingVector,
   hexFacingName,
   hexFacingFromScreenDelta,
   mapHexFacings,
@@ -113,6 +115,19 @@ describe("hex primitives", () => {
     ]);
   });
 
+  it("supports distinct border and fill styling for hex tiles", () => {
+    const sprite = createHexGridSprite({
+      board: { cols: 1, rows: 1 },
+      fillStyle: { foreground: ansiColor(196) },
+      borderStyle: { foreground: ansiColor(244) }
+    });
+
+    expect(sprite.cellAt(2, 0)?.glyph).toBe("_");
+    expect(sprite.cellAt(2, 0)?.style?.foreground).toEqual(ansiColor(244));
+    expect(sprite.cellAt(2, 1)?.glyph).toBe(".");
+    expect(sprite.cellAt(2, 1)?.style?.foreground).toEqual(ansiColor(196));
+  });
+
   it("classifies projected screen deltas into six hex facings", () => {
     expect(HEX_FACINGS).toEqual(["n", "ne", "se", "s", "sw", "nw"]);
     expect(hexFacingFromScreenDelta({ layout: DEFAULT_HEX_LAYOUT, dx: 0, dy: -8 })).toBe("n");
@@ -121,6 +136,12 @@ describe("hex primitives", () => {
     expect(hexFacingFromScreenDelta({ layout: DEFAULT_HEX_LAYOUT, dx: 0, dy: 8 })).toBe("s");
     expect(hexFacingFromScreenDelta({ layout: DEFAULT_HEX_LAYOUT, dx: -12, dy: 4 })).toBe("sw");
     expect(hexFacingFromScreenDelta({ layout: DEFAULT_HEX_LAYOUT, dx: -12, dy: -4 })).toBe("nw");
+  });
+
+  it("exposes projected screen vectors for each hex facing", () => {
+    expect(hexFacingVector(DEFAULT_HEX_LAYOUT, "n")).toEqual({ x: 0, y: -4 });
+    expect(hexFacingVector(DEFAULT_HEX_LAYOUT, "northEast")).toEqual({ x: 6, y: -2 });
+    expect(hexFacingVector(scaleHexLayout(DEFAULT_HEX_LAYOUT, 3), "southWest")).toEqual({ x: -18, y: 6 });
   });
 
   it("rotates hex facings cyclically", () => {

@@ -30,6 +30,7 @@ The initial scaffold includes:
 - six-way hex-facing helpers for projected terminal movement
 - compatibility helpers for long-form hex facing names used by consumers
 - parametric hex scaling and multi-line hex content boxes
+- rasterized line plotting for trails, tracers, and projectile overlays
 
 Current non-goals for this first cut:
 
@@ -150,13 +151,16 @@ The hex module is now explicitly parametric. The core exports include:
 - `scaleHexLayout(layout, scale)`: enlarge a layout by an integer scale factor
 - `HEX_FACINGS`, `rotateHexFacing(...)`: represent and cycle through the six facings of the pointy hex projection
 - `HEX_FACING_NAMES`, `normalizeHexFacing(...)`, `hexFacingName(...)`: bridge between canonical short ids (`n`, `ne`, ...) and consumer-friendly names (`north`, `northEast`, ...)
+- `hexFacingVector(layout, facing)`: get the projected screen-space delta for a facing in the active hex layout
 - `hexFacingFromScreenDelta(...)`: classify projected movement into one of the six hex facings
 - `mapHexFacings(...)`, `createHexFacingSpriteSet(...)`, `getHexFacingValue(...)`: build reusable facing-indexed assets without rewriting the same six-way boilerplate
 - `projectHexContentBox(layout, coord)`: find a conservative rectangular text box inside a hex
 - `projectHexContentRows(layout, coord)`: find the full shaped row-by-row text spans inside a hex
 - `drawHexTextBlock(...)`: render clipped/aligned multi-line content across the full usable hex interior
+- `createHexGridSprite(...)` now supports separate `fillStyle` and `borderStyle` inputs when neighboring tiles need shared borders to stay visually consistent
 - `drawTextBlockInRect(...)`: render aligned text into any rectangular region
 - `drawTextBlockInRows(...)`: render aligned text across arbitrary row spans
+- `plotLinePoints(from, to)`: rasterize a straight terminal-space line you can style as trails, tracers, or scanlines
 
 The fastest proof path is `pnpm demo:zoo`, then switch to page `2` and use `[` / `]`.
 Larger scales are generated as clean pointy hexes with single-cell borders rather

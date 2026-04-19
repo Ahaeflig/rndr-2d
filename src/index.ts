@@ -30,7 +30,10 @@ export type {
   Rect,
   Size
 } from "./geometry.js";
-export { pointInRect } from "./geometry.js";
+export {
+  plotLinePoints,
+  pointInRect
+} from "./geometry.js";
 
 export {
   renderSurfacePlain,
@@ -54,6 +57,7 @@ export {
   HEX_FACING_NAMES,
   getHexFacingSprite,
   getHexFacingValue,
+  hexFacingVector,
   hexFacingName,
   hexFacingFromScreenDelta,
   hexBoardSize,

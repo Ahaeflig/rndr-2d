@@ -2,6 +2,7 @@ import { createCell } from "./cell.js";
 import type { Point, Rect, Size } from "./geometry.js";
 import { Sprite } from "./sprite.js";
 import { Surface } from "./surface.js";
+import { mergeStyle } from "./style.js";
 import type { CellStyle } from "./style.js";
 import type { Cell } from "./cell.js";
 import { drawTextBlockInRows } from "./text.js";
@@ -282,7 +283,11 @@ function paintTile(
   origin: Point,
   layout: HexLayout,
   fillGlyph: string,
-  style?: CellStyle
+  styles: {
+    base?: CellStyle;
+    fill?: CellStyle;
+    border?: CellStyle;
+  } = {}
 ) {
   const placeholder = layout.template.fillGlyph ?? ".";
 
@@ -292,10 +297,16 @@ function paintTile(
 
     for (let columnIndex = 0; columnIndex < paintedRow.length; columnIndex += 1) {
       const glyph = paintedRow[columnIndex] ?? " ";
+      const sourceGlyph = row[columnIndex] ?? " ";
 
       if (glyph === " ") {
         continue;
       }
+
+      const style = mergeStyle(
+        styles.base,
+        sourceGlyph === placeholder ? styles.fill : styles.border
+      );
 
       surface.setCell(
         origin.x + columnIndex,
@@ -413,6 +424,13 @@ export function hexFacingName(facing: HexFacingLike): HexFacingName {
   return HEX_FACING_NAME_BY_ID[normalizeHexFacing(facing)];
 }
 
+export function hexFacingVector(
+  layout: HexLayout = DEFAULT_HEX_LAYOUT,
+  facing: HexFacingLike
+): Point {
+  return facingVector(layout, normalizeHexFacing(facing));
+}
+
 export function mapHexFacings<T>(build: (facing: HexFacing, index: number) => T): HexFacingMap<T> {
   return Object.fromEntries(
     HEX_FACINGS.map((facing, index) => [facing, build(facing, index)])
@@ -463,7 +481,7 @@ export function hexFacingFromScreenDelta(input: {
   let bestScore = Number.NEGATIVE_INFINITY;
 
   for (const facing of HEX_FACINGS) {
-    const vector = facingVector(layout, facing);
+    const vector = hexFacingVector(layout, facing);
     const score = input.dx * vector.x + input.dy * vector.y;
 
     if (score > bestScore) {
@@ -491,6 +509,8 @@ export function createHexGridSprite(input: {
   layout?: HexLayout;
   fill?: string | ((coord: AxialCoord) => string);
   style?: CellStyle | ((coord: AxialCoord) => CellStyle | undefined);
+  fillStyle?: CellStyle | ((coord: AxialCoord) => CellStyle | undefined);
+  borderStyle?: CellStyle | ((coord: AxialCoord) => CellStyle | undefined);
 }) {
   const layout = input.layout ?? DEFAULT_HEX_LAYOUT;
   const size = hexBoardSize(input.board, layout);
@@ -503,7 +523,13 @@ export function createHexGridSprite(input: {
         typeof input.fill === "function" ? input.fill(coord) : input.fill ?? "."
       );
       const style = typeof input.style === "function" ? input.style(coord) : input.style;
-      paintTile(surface, projectHexOrigin(layout, coord), layout, fillGlyph, style);
+      const fillStyle = typeof input.fillStyle === "function" ? input.fillStyle(coord) : input.fillStyle;
+      const borderStyle = typeof input.borderStyle === "function" ? input.borderStyle(coord) : input.borderStyle;
+      paintTile(surface, projectHexOrigin(layout, coord), layout, fillGlyph, {
+        ...(style ? { base: style } : {}),
+        ...(fillStyle ? { fill: fillStyle } : {}),
+        ...(borderStyle ? { border: borderStyle } : {})
+      });
     }
   }
 
