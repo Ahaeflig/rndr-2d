@@ -31,10 +31,10 @@ const LIVE_FRAME_COUNT = 12;
 const LIVE_FRAME_STEP_MS = 140;
 const LIVE_FPS = 9;
 
-const BRAILLE_SHOWCASE_COLS = 68;
+const BRAILLE_SHOWCASE_COLS = 54;
 const BRAILLE_SHOWCASE_THRESHOLD = 0.16;
-const BRAILLE_FRAME_WIDTH = 72;
-const BRAILLE_FRAME_HEIGHT = 38;
+const BRAILLE_FRAME_WIDTH = 56;
+const BRAILLE_FRAME_HEIGHT = 28;
 const DEFAULT_BRAILLE_FRAMES_DIR =
   "/home/ahaeflig/projects/pix-token/runs/pink_gunslinger_seedance20_idle_south_20260420_probe_lockcam_v2/animation/frames";
 const DEFAULT_BRAILLE_VIDEO =
@@ -72,6 +72,13 @@ const ANSI_BASE_COLORS = [
 interface ImageSize {
   width: number;
   height: number;
+}
+
+interface CropGeometry {
+  width: number;
+  height: number;
+  x: number;
+  y: number;
 }
 
 interface Sample {
@@ -331,12 +338,31 @@ async function readTrimmedImageSize(source: string) {
   } satisfies ImageSize;
 }
 
-async function readTrimmedRgbaRaster(source: string, size: ImageSize) {
+async function readTrimmedCropGeometry(source: string) {
+  const { stdout } = await execFileAsync("convert", [source, "-trim", "-format", "%wx%h%O", "info:"]);
+  const raw = stdout.trim();
+  const match = raw.match(/^(\d+)x(\d+)\+(-?\d+)\+(-?\d+)$/u);
+
+  if (!match) {
+    throw new Error(`Failed to parse trim geometry for ${source}: ${raw}`);
+  }
+
+  return {
+    width: Number(match[1]),
+    height: Number(match[2]),
+    x: Number(match[3]),
+    y: Number(match[4])
+  } satisfies CropGeometry;
+}
+
+async function readCroppedRgbaRaster(source: string, crop: CropGeometry, size: ImageSize) {
   const { stdout } = await execFileAsync(
     "convert",
     [
       source,
-      "-trim",
+      "-crop",
+      `${crop.width}x${crop.height}+${crop.x}+${crop.y}`,
+      "+repage",
       "-background",
       "none",
       "-alpha",
@@ -391,12 +417,23 @@ async function readVideoFps(videoPath: string) {
   return numerator / denominator;
 }
 
-function drawShowcasePanel(surface: Surface) {
-  const border = rgbColor(72, 83, 110);
-  const panel = rgbColor(18, 20, 32);
-  const label = rgbColor(244, 246, 250);
-  const sublabel = rgbColor(152, 162, 188);
-  const accent = rgbColor(255, 164, 208);
+function buildBrailleShowcaseFrame(input: {
+  braille: BrailleSurface;
+  anchor: {
+    x: number;
+    y: number;
+  };
+}) {
+  const surface = new Surface(
+    BRAILLE_FRAME_WIDTH,
+    BRAILLE_FRAME_HEIGHT,
+    createCell(" ", {
+      background: rgbColor(7, 8, 14)
+    })
+  );
+  const brailleSurface = input.braille.toSurface();
+  const heroX = input.anchor.x;
+  const heroY = input.anchor.y;
 
   surface.fillRect(
     {
@@ -409,112 +446,26 @@ function drawShowcasePanel(surface: Surface) {
       background: rgbColor(7, 8, 14)
     })
   );
-  surface.fillRect(
-    {
-      x: 1,
-      y: 1,
-      width: surface.width - 2,
-      height: surface.height - 2
-    },
-    createCell(" ", {
-      background: panel
-    })
-  );
-  surface.drawText({ x: 2, y: 1 }, `+${"-".repeat(surface.width - 4)}+`, {
-    foreground: border
-  });
-  surface.drawText({ x: 2, y: surface.height - 2 }, `+${"-".repeat(surface.width - 4)}+`, {
-    foreground: border
-  });
-  for (let y = 2; y < surface.height - 2; y += 1) {
-    surface.drawText({ x: 2, y }, "|", { foreground: border });
-    surface.drawText({ x: surface.width - 3, y }, "|", { foreground: border });
-  }
-
-  surface.drawText({ x: 5, y: 3 }, "BRAILLE SHOWCASE", {
-    foreground: label,
-    bold: true
-  });
-  surface.drawText({ x: 5, y: 5 }, "real sprite frames rendered as color braille cells", {
-    foreground: sublabel
-  });
-  surface.drawText({ x: 5, y: surface.height - 5 }, "still plain terminal text output", {
-    foreground: sublabel
-  });
-  surface.drawText({ x: 5, y: surface.height - 3 }, "2x4 micro-grid per cell", {
-    foreground: accent,
-    bold: true
-  });
-
-  const stars = [
-    { x: 58, y: 5, glyph: "·" },
-    { x: 63, y: 8, glyph: "*" },
-    { x: 10, y: 31, glyph: "·" },
-    { x: 58, y: 29, glyph: "·" },
-    { x: 62, y: 26, glyph: "+" }
-  ] as const;
-
-  for (const star of stars) {
-    surface.drawText({ x: star.x, y: star.y }, star.glyph, {
-      foreground: rgbColor(98, 109, 138)
-    });
-  }
-}
-
-function buildBrailleShowcaseFrame(input: {
-  braille: BrailleSurface;
-  frameNumber: number;
-  totalFrames: number;
-  fps: number;
-}) {
-  const surface = new Surface(
-    BRAILLE_FRAME_WIDTH,
-    BRAILLE_FRAME_HEIGHT,
-    createCell(" ", {
-      background: rgbColor(7, 8, 14)
-    })
-  );
-  const heroX = Math.floor((surface.width - input.braille.width) / 2);
-  const heroY = 6;
-  const topRightLabel = `${input.totalFrames} frames @ ${input.fps.toFixed(0)} fps`;
-  const bottomRightLabel = `frame ${String(input.frameNumber + 1).padStart(2, "0")}`;
-
-  drawShowcasePanel(surface);
 
   surface.blit(input.braille, { x: heroX + 1, y: heroY + 1 }, {
     style: {
-      foreground: rgbColor(34, 24, 48),
+      foreground: rgbColor(28, 20, 42),
       dim: true
     }
   });
   surface.blit(input.braille, { x: heroX - 1, y: heroY + 1 }, {
     style: {
-      foreground: rgbColor(129, 73, 127),
+      foreground: rgbColor(124, 66, 126),
       dim: true
     }
   });
-  surface.blit(input.braille, { x: heroX + 1, y: heroY }, {
+  surface.blit(input.braille, { x: heroX, y: heroY - 1 }, {
     style: {
-      foreground: rgbColor(220, 108, 175),
+      foreground: rgbColor(218, 102, 172),
       dim: true
     }
   });
-  surface.blit(input.braille, { x: heroX, y: heroY });
-
-  surface.drawText(
-    { x: surface.width - 5 - topRightLabel.length, y: 3 },
-    topRightLabel,
-    {
-      foreground: rgbColor(255, 188, 223)
-    }
-  );
-  surface.drawText(
-    { x: surface.width - 5 - bottomRightLabel.length, y: surface.height - 3 },
-    bottomRightLabel,
-    {
-      foreground: rgbColor(133, 213, 255)
-    }
-  );
+  surface.blit(brailleSurface, { x: heroX, y: heroY });
 
   return surface;
 }
@@ -567,7 +518,9 @@ async function buildBrailleShowcaseMedia(tempDir: string) {
   }
 
   const fps = await readVideoFps(videoPath);
-  const trimmedSize = await readTrimmedImageSize(frames[0] ?? "");
+  const firstFrame = frames[0] ?? "";
+  const trimmedSize = await readTrimmedImageSize(firstFrame);
+  const crop = await readTrimmedCropGeometry(firstFrame);
   const microWidth = BRAILLE_SHOWCASE_COLS * 2;
   const microHeight = alignUp(
     Math.max(4, Math.round((trimmedSize.height / trimmedSize.width) * microWidth)),
@@ -577,16 +530,31 @@ async function buildBrailleShowcaseMedia(tempDir: string) {
     width: microWidth,
     height: microHeight
   } satisfies ImageSize;
+  let anchor: { x: number; y: number } | null = null;
 
   for (let index = 0; index < frames.length; index += 1) {
     const source = frames[index] ?? frames[0]!;
-    const rgba = await readTrimmedRgbaRaster(source, scaledSize);
+    const rgba = await readCroppedRgbaRaster(source, crop, scaledSize);
     const braille = renderBrailleSurface(rgba, scaledSize.width, scaledSize.height, BRAILLE_SHOWCASE_THRESHOLD);
+
+    if (!anchor) {
+      const occupiedBounds = summarizeSurface(braille.toSurface()).occupiedBounds;
+      const visibleWidth = occupiedBounds ? occupiedBounds.maxX - occupiedBounds.minX + 1 : braille.width;
+      const visibleHeight = occupiedBounds ? occupiedBounds.maxY - occupiedBounds.minY + 1 : braille.height;
+      anchor = occupiedBounds
+        ? {
+            x: Math.floor((BRAILLE_FRAME_WIDTH - visibleWidth) / 2) - occupiedBounds.minX,
+            y: Math.floor((BRAILLE_FRAME_HEIGHT - visibleHeight) / 2) - occupiedBounds.minY
+          }
+        : {
+            x: Math.floor((BRAILLE_FRAME_WIDTH - braille.width) / 2),
+            y: Math.floor((BRAILLE_FRAME_HEIGHT - braille.height) / 2)
+          };
+    }
+
     const frame = buildBrailleShowcaseFrame({
       braille,
-      frameNumber: index,
-      totalFrames: frames.length,
-      fps
+      anchor
     });
     const svgPath = join(tempDir, `braille-${String(index).padStart(3, "0")}.svg`);
     const pngPath = join(tempDir, `braille-${String(index).padStart(3, "0")}.png`);
