@@ -511,29 +511,172 @@ export function createHexGridSprite(input: {
   style?: CellStyle | ((coord: AxialCoord) => CellStyle | undefined);
   fillStyle?: CellStyle | ((coord: AxialCoord) => CellStyle | undefined);
   borderStyle?: CellStyle | ((coord: AxialCoord) => CellStyle | undefined);
+  /**
+   * Optional tile priority used when adjacent hexes share a border cell.
+   * Tiles paint in ascending priority order, so a higher priority wins
+   * shared border glyphs. Use this when different tile classes (e.g. spawn
+   * zones vs. neutral territory) need consistent edge colors along their
+   * full boundary. Default: 0 for all tiles.
+   */
+  edgePriority?: (coord: AxialCoord) => number;
 }) {
   const layout = input.layout ?? DEFAULT_HEX_LAYOUT;
   const size = hexBoardSize(input.board, layout);
   const surface = new Surface(size.width, size.height);
 
+  const coords: AxialCoord[] = [];
   for (let q = 0; q < input.board.cols; q += 1) {
     for (let r = 0; r < input.board.rows; r += 1) {
-      const coord = { q, r };
-      const fillGlyph = normalizeFillGlyph(
-        typeof input.fill === "function" ? input.fill(coord) : input.fill ?? "."
-      );
-      const style = typeof input.style === "function" ? input.style(coord) : input.style;
-      const fillStyle = typeof input.fillStyle === "function" ? input.fillStyle(coord) : input.fillStyle;
-      const borderStyle = typeof input.borderStyle === "function" ? input.borderStyle(coord) : input.borderStyle;
-      paintTile(surface, projectHexOrigin(layout, coord), layout, fillGlyph, {
-        ...(style ? { base: style } : {}),
-        ...(fillStyle ? { fill: fillStyle } : {}),
-        ...(borderStyle ? { border: borderStyle } : {})
-      });
+      coords.push({ q, r });
     }
   }
 
+  if (input.edgePriority) {
+    const priorityFn = input.edgePriority;
+    coords.sort((left, right) => priorityFn(left) - priorityFn(right));
+  }
+
+  for (const coord of coords) {
+    const fillGlyph = normalizeFillGlyph(
+      typeof input.fill === "function" ? input.fill(coord) : input.fill ?? "."
+    );
+    const style = typeof input.style === "function" ? input.style(coord) : input.style;
+    const fillStyle = typeof input.fillStyle === "function" ? input.fillStyle(coord) : input.fillStyle;
+    const borderStyle = typeof input.borderStyle === "function" ? input.borderStyle(coord) : input.borderStyle;
+    paintTile(surface, projectHexOrigin(layout, coord), layout, fillGlyph, {
+      ...(style ? { base: style } : {}),
+      ...(fillStyle ? { fill: fillStyle } : {}),
+      ...(borderStyle ? { border: borderStyle } : {})
+    });
+  }
+
   return Sprite.fromRaster(surface);
+}
+
+/**
+ * The six sides of a pointy-flat hex tile, keyed by the same short ids as
+ * facings. `n`/`s` are the horizontal top/bottom edges; the others are the
+ * diagonals.
+ */
+export type HexEdge = HexFacing;
+
+interface HexEdgeGeometry {
+  readonly cells: readonly Point[];
+  readonly glyph: string;
+}
+
+function rangeInclusive(from: number, to: number): number[] {
+  const result: number[] = [];
+  const step = from <= to ? 1 : -1;
+  for (let value = from; step > 0 ? value <= to : value >= to; value += step) {
+    result.push(value);
+  }
+  return result;
+}
+
+function resolveEdgeGeometry(layout: HexLayout, edge: HexEdge): HexEdgeGeometry {
+  const scale = Math.max(1, layout.scale ?? 1);
+  const topInset = 2 * scale;
+  const totalWidth = 8 * scale;
+  const totalHeight = 4 * scale + 1;
+
+  if (edge === "n") {
+    return {
+      glyph: "_",
+      cells: rangeInclusive(topInset, topInset + 4 * scale - 1).map((x) => ({ x, y: 0 }))
+    };
+  }
+
+  if (edge === "s") {
+    return {
+      glyph: "_",
+      cells: rangeInclusive(topInset, topInset + 4 * scale - 1).map((x) => ({ x, y: totalHeight - 1 }))
+    };
+  }
+
+  if (edge === "nw") {
+    const cells: Point[] = [];
+    for (let step = 0; step < 2 * scale; step += 1) {
+      cells.push({ x: topInset - 1 - step, y: 1 + step });
+    }
+    return { glyph: "/", cells };
+  }
+
+  if (edge === "ne") {
+    const cells: Point[] = [];
+    for (let step = 0; step < 2 * scale; step += 1) {
+      cells.push({ x: totalWidth - topInset + step, y: 1 + step });
+    }
+    return { glyph: "\\", cells };
+  }
+
+  if (edge === "sw") {
+    const cells: Point[] = [];
+    for (let step = 0; step < 2 * scale; step += 1) {
+      cells.push({ x: step, y: 2 * scale + step });
+    }
+    return { glyph: "\\", cells };
+  }
+
+  const cells: Point[] = [];
+  for (let step = 0; step < 2 * scale; step += 1) {
+    cells.push({ x: totalWidth - 1 - step, y: 2 * scale + step });
+  }
+  return { glyph: "/", cells };
+}
+
+/**
+ * Paint a single hex edge on an existing surface with the given style.
+ * Useful for selection rings, facing highlights, damage flashes, or any
+ * overlay that needs to light up one side of a hex without redrawing the
+ * tile.
+ */
+export function drawHexEdge(
+  surface: Surface,
+  input: {
+    coord: AxialCoord;
+    edge: HexEdgeLike;
+    layout?: HexLayout;
+    style?: CellStyle;
+    glyph?: string;
+  }
+) {
+  const layout = input.layout ?? DEFAULT_HEX_LAYOUT;
+  const edge = normalizeHexFacing(input.edge);
+  const geometry = resolveEdgeGeometry(layout, edge);
+  const origin = projectHexOrigin(layout, input.coord);
+  const glyph = input.glyph ?? geometry.glyph;
+
+  for (const offset of geometry.cells) {
+    surface.setCell(
+      origin.x + offset.x,
+      origin.y + offset.y,
+      createCell(glyph, input.style)
+    );
+  }
+}
+
+export type HexEdgeLike = HexFacingLike;
+
+/**
+ * Return a point inside the hex biased toward one of its six edges. bias=0
+ * is dead center, bias=1 is the exact edge midpoint. Useful for "unit
+ * leans forward" offsets that cue facing without glyph arrows.
+ */
+export function projectHexAnchor(
+  layout: HexLayout,
+  coord: AxialCoord,
+  facing: HexFacingLike,
+  bias: number
+): Point {
+  const center = projectHexCenter(layout, coord);
+  const vector = hexFacingVector(layout, facing);
+  // facingVector returns the step to the neighbor's center. Half that is
+  // the edge midpoint of the current tile.
+  return {
+    x: center.x + (vector.x * bias) / 2,
+    y: center.y + (vector.y * bias) / 2
+  };
 }
 
 export function drawHexLabel(surface: Surface, input: {

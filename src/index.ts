@@ -49,6 +49,7 @@ export {
   createHexGridSprite,
   DEFAULT_HEX_LAYOUT,
   DEFAULT_HEX_TILE_TEMPLATE,
+  drawHexEdge,
   drawHexLabel,
   drawHexTextBlock,
   HEX_FACINGS,
@@ -63,6 +64,7 @@ export {
   hexBoardSize,
   mapHexFacings,
   normalizeHexFacing,
+  projectHexAnchor,
   projectHexCenter,
   projectHexContentBox,
   projectHexContentRows,
@@ -72,6 +74,8 @@ export {
 } from "./hex.js";
 export type {
   AxialCoord,
+  HexEdge,
+  HexEdgeLike,
   HexFacing,
   HexFacingLike,
   HexFacingMap,
