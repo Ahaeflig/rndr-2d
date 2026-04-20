@@ -6,7 +6,7 @@ Terminal-first 2D rendering for games that draw with text.
 mutable surfaces, reusable sprites, scene composition, ANSI output, hex-grid
 helpers, and braille-backed dense layers for art and effects.
 
-![Animated live demo](docs/media/live-demo.gif)
+![Animated braille showcase](docs/media/braille-showcase.gif)
 
 Early project. The core model is in place and already useful; the API will
 still move as real game integrations push on it.
@@ -62,7 +62,7 @@ Useful review commands:
 - `pnpm demo:dense`: coarse vs braille comparison
 - `pnpm demo:png-braille`: image-to-braille proof path
 - `pnpm review:artifacts`: writes text review files to `docs/generated/`
-- `pnpm media:readme`: regenerates the README GIF and poster image
+- `pnpm media:readme`: refreshes the README media; the sprite-based braille showcase is optional and rebuilds when a local source is configured
 
 ## Example
 
@@ -122,6 +122,8 @@ process.stdout.write(renderSurfaceAnsi(frame));
 Braille rendering is the dense path in `rndr-2d`. One terminal cell becomes a
 `2x4` micro-grid, which lets you draw smoother lines, softer effects, and more
 shape inside the same screen space.
+
+![Animated live demo](docs/media/live-demo.gif)
 
 That does not mean every layer should be braille. The split that works:
 
