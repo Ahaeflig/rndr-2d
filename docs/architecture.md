@@ -87,6 +87,23 @@ The first geometry primitive is a hex-grid projector:
 That gives `agent-game` a path away from hand-maintained console board code
 without making hexes a special case of the whole library.
 
+### 7. Dense Graphics Extensions
+
+Some terminal graphics benefit from denser sampling than one authored glyph per
+cell. `rndr-2d` now supports that through optional raster extensions that still
+compile back into normal terminal cells.
+
+The first dense path is a braille micro-raster:
+
+- author in micro-dot coordinates rather than cell coordinates
+- compile each `2x4` dot block into one Unicode braille cell
+- preserve the normal `RasterSource` contract at the composition boundary
+- keep dense graphics opt-in so labels and UI remain readable
+
+This is intentionally an extension, not a rewrite of the core unit. The atomic
+unit of composition is still a terminal cell; braille is a way to generate
+better graphics cells, not a reason to redefine what a `Cell` means.
+
 ## Public Boundaries
 
 ### Core
@@ -107,6 +124,7 @@ These are allowed to be opinionated if they are still reusable across games:
 
 - hex layouts
 - hex facing maps and sprite sets
+- dense raster compilers such as braille surfaces
 - sprite glyph remappers for rotation
 - tile templates
 - animation helpers based on pure interpolation

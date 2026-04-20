@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { plotLinePoints } from "../src/index.js";
+import { plotLinePoints, pointInPolygon } from "../src/index.js";
 
 describe("plotLinePoints", () => {
   it("includes both endpoints on a horizontal line", () => {
@@ -31,5 +31,18 @@ describe("plotLinePoints", () => {
       { x: 3, y: 2 },
       { x: 4, y: 2 }
     ]);
+  });
+
+  it("classifies points inside a polygon", () => {
+    const polygon = [
+      { x: 1, y: 1 },
+      { x: 5, y: 1 },
+      { x: 6, y: 3 },
+      { x: 3, y: 5 },
+      { x: 1, y: 4 }
+    ];
+
+    expect(pointInPolygon({ x: 3, y: 3 }, polygon)).toBe(true);
+    expect(pointInPolygon({ x: 0, y: 0 }, polygon)).toBe(false);
   });
 });

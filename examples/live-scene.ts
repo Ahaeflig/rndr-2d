@@ -1,8 +1,10 @@
 import {
+  BrailleSurface,
   DEFAULT_HEX_LAYOUT,
   Sprite,
   Surface,
   ansiColor,
+  brailleDotPointFromCell,
   composeScene,
   createCell,
   createHexGridSprite,
@@ -236,6 +238,84 @@ function createStarfield(elapsedMs: number) {
   return surface;
 }
 
+function createBrailleNebula(elapsedMs: number) {
+  const braille = new BrailleSurface(BOARD_SPRITE.width, BOARD_SPRITE.height, {
+    activationThreshold: 0.18
+  });
+  const drift = elapsedMs / 1000;
+  const dotWidth = braille.dotWidth;
+  const dotHeight = braille.dotHeight;
+  const cloudA = brailleDotPointFromCell({
+    x: Math.round(BOARD_SPRITE.width * 0.18),
+    y: Math.round(BOARD_SPRITE.height * 0.58)
+  }, "center");
+  const cloudB = brailleDotPointFromCell({
+    x: Math.round(BOARD_SPRITE.width * 0.5),
+    y: Math.round(BOARD_SPRITE.height * 0.8)
+  }, "center");
+  const ring = brailleDotPointFromCell({
+    x: Math.round(BOARD_SPRITE.width * 0.78),
+    y: Math.round(BOARD_SPRITE.height * 0.28)
+  }, "center");
+
+  braille.fillCircle(
+    {
+      x: cloudA.x + Math.sin(drift * 0.45) * 4,
+      y: cloudA.y + Math.cos(drift * 0.35) * 3
+    },
+    7.8,
+    {
+      value: 0.34,
+      style: {
+        foreground: rgbColor(56, 134, 171)
+      }
+    }
+  );
+  braille.fillCircle(
+    {
+      x: cloudB.x + Math.cos(drift * 0.55) * 5,
+      y: cloudB.y + Math.sin(drift * 0.4) * 3
+    },
+    11.5,
+    {
+      value: 0.28,
+      style: {
+        foreground: rgbColor(87, 66, 153)
+      }
+    }
+  );
+  braille.strokeCircle(
+    {
+      x: ring.x + Math.sin(drift * 0.3) * 4,
+      y: ring.y + Math.cos(drift * 0.37) * 3
+    },
+    8.5,
+    {
+      value: 0.42,
+      style: {
+        foreground: rgbColor(255, 148, 78)
+      }
+    },
+    1.6
+  );
+  braille.drawCellLine(
+    { x: 0, y: BOARD_SPRITE.height - 2 },
+    {
+      x: BOARD_SPRITE.width - 4,
+      y: Math.max(1, Math.round(BOARD_SPRITE.height * 0.2 + Math.sin(drift * 0.6) * 2))
+    },
+    {
+      value: 0.22,
+      style: {
+        foreground: rgbColor(84, 191, 224)
+      }
+    },
+    "center"
+  );
+
+  return braille;
+}
+
 function createAttackTrail(elapsedMs: number, from: Point, to: Point) {
   const surface = new Surface(FRAME_SIZE.width, FRAME_SIZE.height);
   const phase = (elapsedMs % BLAST_DURATION_MS) / BLAST_DURATION_MS;
@@ -368,23 +448,28 @@ export function buildLiveDemoFrame(input: LiveDemoFrameInput) {
     }),
     layers: [
       {
-        name: "stars",
+        name: "nebula",
         z: 0,
+        items: [{ source: createBrailleNebula(input.elapsedMs), position: BOARD_ORIGIN }]
+      },
+      {
+        name: "stars",
+        z: 1,
         items: [{ source: createStarfield(input.elapsedMs), position: { x: 0, y: 0 } }]
       },
       {
         name: "board",
-        z: 1,
+        z: 2,
         items: [{ source: BOARD_SPRITE, position: BOARD_ORIGIN }]
       },
       {
         name: "labels",
-        z: 2,
+        z: 3,
         items: [{ source: labels, position: { x: 0, y: 0 } }]
       },
       {
         name: "pulse",
-        z: 3,
+        z: 4,
         items: [
           { source: createPulseLayer(input.elapsedMs, objective), position: { x: 0, y: 0 } },
           { source: createPulseLayer(input.elapsedMs + 350, escort), position: { x: 0, y: 0 } }
@@ -392,12 +477,12 @@ export function buildLiveDemoFrame(input: LiveDemoFrameInput) {
       },
       {
         name: "trail",
-        z: 4,
+        z: 5,
         items: [{ source: createAttackTrail(input.elapsedMs, player.center, enemy.center), position: { x: 0, y: 0 } }]
       },
       {
         name: "units",
-        z: 5,
+        z: 6,
         items: [
           {
             source: playerSprite,
@@ -411,7 +496,7 @@ export function buildLiveDemoFrame(input: LiveDemoFrameInput) {
       },
       {
         name: "hud",
-        z: 6,
+        z: 7,
         items: [
           {
             source: createHud({

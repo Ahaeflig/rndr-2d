@@ -25,6 +25,7 @@ The initial scaffold includes:
 - immutable `Sprite` rasters
 - scene/layer composition
 - ANSI frame serialization and diff rendering
+- optional braille micro-raster rendering that compiles to normal terminal cells
 - quarter-turn sprite rotation with glyph remapping
 - a reusable hex-grid primitive with label projection
 - six-way hex-facing helpers for projected terminal movement
@@ -47,6 +48,8 @@ pnpm install
 pnpm check
 pnpm demo:zoo
 pnpm demo:live
+pnpm demo:dense
+pnpm demo:png-braille
 pnpm demo:overview
 pnpm demo:review
 pnpm review:artifacts
@@ -117,7 +120,9 @@ process.stdout.write(renderSurfaceAnsi(frame));
 ## Review Commands
 
 - `pnpm demo:zoo`: keyboard-driven feature zoo for manual testing of pages, colors, layers, animation, 6-way hex facing, and parametric hex scaling
-- `pnpm demo:live`: animated terminal renderer with alt-screen, diff updates, motion, colors, layers, and a rotation gallery
+- `pnpm demo:live`: animated terminal renderer with alt-screen, diff updates, motion, colors, layers, a board-local braille nebula, and a rotation gallery
+- `pnpm demo:dense`: side-by-side coarse-vs-braille density experiment in the same terminal footprint
+- `pnpm demo:png-braille`: image-to-braille proof path using ImageMagick input
 - `pnpm demo:overview`: small color demo
 - `pnpm demo:review`: richer two-frame review showcase with ANSI, plain snapshots, axes, and diff/debug output
 - `pnpm review:artifacts`: generates review files in `docs/generated/`
@@ -143,6 +148,70 @@ Live demo flags:
 - `pnpm demo:live -- --fps 24`: raise target frame rate
 - `pnpm demo:live -- --loop`: keep running until `Ctrl-C`
 - `pnpm demo:live -- --no-alt`: avoid alt-screen, useful when capturing output
+
+## Braille Rendering
+
+`rndr-2d` now includes an optional dense rendering path for graphics-oriented
+layers. `BrailleSurface` authors into a `2x4` micro-grid per terminal cell and
+compiles back into ordinary terminal text using Unicode braille glyphs, so it
+still composes through the same `RasterSource -> Surface -> ANSI` pipeline as
+the rest of the engine.
+
+That keeps the core model honest:
+
+- normal `Surface`/`Sprite` rendering remains the default for readable text and UI
+- braille rendering is opt-in for art, silhouettes, terrain texture, and effects
+- the compositor still only sees ordinary terminal cells at the boundary
+
+The fastest proof paths are `pnpm demo:dense`, `pnpm demo:png-braille`, and
+`pnpm demo:live`.
+
+Consumer guidance:
+
+- use braille layers for dense art, terrain texture, silhouettes, trails, glows, and atmospheric effects
+- keep the board grid, labels, HUD, and other readability-critical elements on normal `Surface`/`Sprite` layers
+- prefer the cell-space braille helpers when the game already thinks in terminal-cell coordinates
+
+Example:
+
+```ts
+import {
+  BrailleSurface,
+  brailleDotPointFromCell,
+  composeScene,
+  rgbColor
+} from "rndr-2d";
+
+const effects = new BrailleSurface(boardWidth, boardHeight, {
+  activationThreshold: 0.18
+});
+
+effects.fillCellRect(
+  { x: 0, y: 0, width: boardWidth, height: boardHeight },
+  { value: 0.08, style: { foreground: rgbColor(32, 74, 96) } }
+);
+
+effects.drawCellLine(
+  { x: 2, y: 8 },
+  { x: 18, y: 4 },
+  { value: 0.35, style: { foreground: rgbColor(84, 191, 224) } }
+);
+
+effects.fillCircle(
+  brailleDotPointFromCell({ x: 10, y: 6 }, "center"),
+  7,
+  { value: 0.28, style: { foreground: rgbColor(96, 58, 160) } }
+);
+
+const frame = composeScene({
+  size: { width: screenWidth, height: screenHeight },
+  layers: [
+    { name: "effects", z: 0, items: [{ source: effects, position: boardOrigin }] },
+    { name: "grid", z: 1, items: [{ source: boardGrid, position: boardOrigin }] },
+    { name: "hud", z: 2, items: [{ source: hud, position: hudOrigin }] }
+  ]
+});
+```
 
 ## Hex Scaling
 

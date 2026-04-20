@@ -21,6 +21,10 @@ These are the initial quality criteria for the library.
   border strokes.
 - Larger hexes expose additional usable row-span interior for text, not just a
   scaled safe rectangle.
+- Dense braille rasters compile deterministically into the same cell output for
+  identical micro-dot input.
+- Dense raster extensions remain composable through the normal `RasterSource`
+  and `Surface` APIs instead of bypassing the engine.
 
 ## Test Requirements
 

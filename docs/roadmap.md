@@ -24,6 +24,8 @@ Likely work:
 - port unit token and overlay composition
 - smooth contract-facing seams such as facing-name compatibility and shared
   facing-indexed asset helpers
+- decide where braille-backed art layers help the consumer without replacing
+  readable text rendering
 - add missing primitives discovered during the port
 
 ## Phase 2: Animation Primitives
@@ -56,6 +58,7 @@ Possible directions:
 
 - isometric templates
 - tilemap helpers
+- additional dense renderers beyond braille where the abstraction stays clean
 - lighting and fog approximations in text
 - particle-style effects
 - palette utilities

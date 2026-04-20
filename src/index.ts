@@ -32,8 +32,25 @@ export type {
 } from "./geometry.js";
 export {
   plotLinePoints,
+  pointInPolygon,
   pointInRect
 } from "./geometry.js";
+
+export {
+  BRAILLE_DOT_COLUMNS,
+  BRAILLE_DOT_ROWS,
+  brailleCellSizeFromDotSize,
+  brailleDotPointFromCell,
+  brailleDotRectFromCellRect,
+  mapBrailleCellPoints,
+  BrailleSurface
+} from "./braille.js";
+export type {
+  BrailleCellAnchor,
+  BrailleDot,
+  BraillePaint,
+  BrailleSurfaceOptions
+} from "./braille.js";
 
 export {
   renderSurfacePlain,
