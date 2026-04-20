@@ -1,47 +1,50 @@
 # rndr-2d
 
-Terminal-first 2D rendering primitives for text games.
+Terminal-first 2D rendering for games that draw with text.
 
-The goal is not to build a full widget framework. The goal is to make CLI game
-rendering feel like working with actual rendering primitives:
+`rndr-2d` gives you a small rendering model for CLI games: cells with style,
+mutable surfaces, reusable sprites, scene composition, ANSI output, hex-grid
+helpers, and braille-backed dense layers for art and effects.
 
-- cells with style instead of ad-hoc ANSI strings
-- immutable sprites instead of hand-built string arrays
-- composited layers instead of one-off paint order
-- reusable geometry such as hex grids instead of game-local projection code
-- a thin ANSI backend instead of terminal state leaking through the whole engine
+![Animated live demo](docs/media/live-demo.gif)
 
-The first consumer target is `~/projects/agent-game`, which already has a
-working but bespoke hex/CLI renderer. `rndr-2d` starts by extracting the
-reusable ideas behind that renderer and turning them into a small, testable
-library.
+Early project. The core model is in place and already useful; the API will
+still move as real game integrations push on it.
 
-## Current Scope
-
-The initial scaffold includes:
+## What You Get
 
 - `Cell`, `CellStyle`, and color primitives
-- mutable `Surface` buffers
-- immutable `Sprite` rasters
-- scene/layer composition
-- ANSI frame serialization and diff rendering
-- optional braille micro-raster rendering that compiles to normal terminal cells
-- quarter-turn sprite rotation with glyph remapping
-- a reusable hex-grid primitive with label projection
-- six-way hex-facing helpers for projected terminal movement
-- compatibility helpers for long-form hex facing names used by consumers
-- parametric hex scaling and multi-line hex content boxes
-- rasterized line plotting for trails, tracers, and projectile overlays
+- mutable `Surface` buffers and immutable `Sprite` rasters
+- explicit scene/layer composition
+- full-frame ANSI rendering and diff rendering
+- hex-grid projection, labels, scalable hex layouts, and six-way hex facing
+- braille dense rendering for text-mode effects, silhouettes, and terrain detail
+- deterministic helpers that are easy to snapshot and test
 
-Current non-goals for this first cut:
+`rndr-2d` is not a widget toolkit. It does not handle input, layout management,
+or game loops. The job here is narrower: make terminal game rendering feel like
+rendering work, not string assembly.
+
+## Current Shape
+
+The library works well for:
+
+- hex boards and tactical maps
+- layered unit rendering
+- HUD panels and status overlays
+- projectile trails, pulses, scanlines, and similar effects
+- denser art layers built with Unicode braille cells
+
+Parts that are still intentionally missing:
 
 - terminal input handling
-- frame scheduling or game loops
-- arbitrary-angle sprite rotation
-- wide-grapheme layout correctness beyond width-1 terminal cells
-- opinionated ECS, state management, or gameplay architecture
+- frame pacing helpers in the core library
+- arbitrary-angle rotation
+- full grapheme-width handling beyond single-cell glyphs
 
 ## Quick Start
+
+The package is not published to npm yet. Right now the repo is the product.
 
 ```bash
 pnpm install
@@ -50,10 +53,16 @@ pnpm demo:zoo
 pnpm demo:live
 pnpm demo:dense
 pnpm demo:png-braille
-pnpm demo:overview
-pnpm demo:review
-pnpm review:artifacts
 ```
+
+Useful review commands:
+
+- `pnpm demo:zoo`: interactive feature zoo
+- `pnpm demo:live`: animated renderer with diff updates
+- `pnpm demo:dense`: coarse vs braille comparison
+- `pnpm demo:png-braille`: image-to-braille proof path
+- `pnpm review:artifacts`: writes text review files to `docs/generated/`
+- `pnpm media:readme`: regenerates the README GIF and poster image
 
 ## Example
 
@@ -108,77 +117,22 @@ drawHexLabel(frame, {
 process.stdout.write(renderSurfaceAnsi(frame));
 ```
 
-## Project Layout
+## Braille Layers
 
-- [AGENTS.md](/home/ahaeflig/projects/rndr-2d/AGENTS.md): agent operating notes for this repo
-- [docs/architecture.md](/home/ahaeflig/projects/rndr-2d/docs/architecture.md): core rendering model
-- [docs/architecture-illustrated.md](/home/ahaeflig/projects/rndr-2d/docs/architecture-illustrated.md): ASCII architecture diagrams
-- [docs/roadmap.md](/home/ahaeflig/projects/rndr-2d/docs/roadmap.md): staged plan
-- [docs/evals.md](/home/ahaeflig/projects/rndr-2d/docs/evals.md): invariants and quality criteria
-- [docs/research.md](/home/ahaeflig/projects/rndr-2d/docs/research.md): outside inspirations and takeaways
+Braille rendering is the dense path in `rndr-2d`. One terminal cell becomes a
+`2x4` micro-grid, which lets you draw smoother lines, softer effects, and more
+shape inside the same screen space.
 
-## Review Commands
+That does not mean every layer should be braille. The split that works:
 
-- `pnpm demo:zoo`: keyboard-driven feature zoo for manual testing of pages, colors, layers, animation, 6-way hex facing, and parametric hex scaling
-- `pnpm demo:live`: animated terminal renderer with alt-screen, diff updates, motion, colors, layers, a board-local braille nebula, and a rotation gallery
-- `pnpm demo:dense`: side-by-side coarse-vs-braille density experiment in the same terminal footprint
-- `pnpm demo:png-braille`: image-to-braille proof path using ImageMagick input
-- `pnpm demo:overview`: small color demo
-- `pnpm demo:review`: richer two-frame review showcase with ANSI, plain snapshots, axes, and diff/debug output
-- `pnpm review:artifacts`: generates review files in `docs/generated/`
-
-Feature zoo controls:
-
-- `1` / `2` / `3` or `Tab`: switch between play, hex lab, and style lab
-- arrow keys or `HJKL`: move the active selector
-- `Enter`: move the player ship to the selected hex on the play page
-- `Q` / `E`: rotate the player ship through 6 hex facings
-- `Space`: toggle autoplay
-- `P` / `T` / `S`: toggle pulse, trail, and stars
-- `[` / `]`: shrink or enlarge hexes in the hex lab
-- `B`: toggle usable-row markers for hex text regions
-- `C`: cycle palettes
-- `D`: toggle the debug footer
-- `R`: reset the demo state
-- `?`: show the in-demo help overlay
-
-Live demo flags:
-
-- `pnpm demo:live -- --seconds 10`: run for a fixed duration
-- `pnpm demo:live -- --fps 24`: raise target frame rate
-- `pnpm demo:live -- --loop`: keep running until `Ctrl-C`
-- `pnpm demo:live -- --no-alt`: avoid alt-screen, useful when capturing output
-
-## Braille Rendering
-
-`rndr-2d` now includes an optional dense rendering path for graphics-oriented
-layers. `BrailleSurface` authors into a `2x4` micro-grid per terminal cell and
-compiles back into ordinary terminal text using Unicode braille glyphs, so it
-still composes through the same `RasterSource -> Surface -> ANSI` pipeline as
-the rest of the engine.
-
-That keeps the core model honest:
-
-- normal `Surface`/`Sprite` rendering remains the default for readable text and UI
-- braille rendering is opt-in for art, silhouettes, terrain texture, and effects
-- the compositor still only sees ordinary terminal cells at the boundary
-
-The fastest proof paths are `pnpm demo:dense`, `pnpm demo:png-braille`, and
-`pnpm demo:live`.
-
-Consumer guidance:
-
-- use braille layers for dense art, terrain texture, silhouettes, trails, glows, and atmospheric effects
-- keep the board grid, labels, HUD, and other readability-critical elements on normal `Surface`/`Sprite` layers
-- prefer the cell-space braille helpers when the game already thinks in terminal-cell coordinates
-
-Example:
+- use `BrailleSurface` for terrain texture, fog, glows, silhouettes, trails, and atmosphere
+- keep the board grid, labels, HUD, and other readability-heavy layers on normal `Surface` or `Sprite`
+- stay in cell coordinates when you can, then drop to dot coordinates only for fine shapes
 
 ```ts
 import {
   BrailleSurface,
   brailleDotPointFromCell,
-  composeScene,
   rgbColor
 } from "rndr-2d";
 
@@ -202,54 +156,40 @@ effects.fillCircle(
   7,
   { value: 0.28, style: { foreground: rgbColor(96, 58, 160) } }
 );
-
-const frame = composeScene({
-  size: { width: screenWidth, height: screenHeight },
-  layers: [
-    { name: "effects", z: 0, items: [{ source: effects, position: boardOrigin }] },
-    { name: "grid", z: 1, items: [{ source: boardGrid, position: boardOrigin }] },
-    { name: "hud", z: 2, items: [{ source: hud, position: hudOrigin }] }
-  ]
-});
 ```
 
-## Hex Scaling
+## Hex Boards
 
-The hex module is now explicitly parametric. The core exports include:
+Hex rendering is a first-class part of the library right now because it is the
+first hard consumer. The public hex exports include:
 
-- `scaleHexLayout(layout, scale)`: enlarge a layout by an integer scale factor
-- `HEX_FACINGS`, `rotateHexFacing(...)`: represent and cycle through the six facings of the pointy hex projection
-- `HEX_FACING_NAMES`, `normalizeHexFacing(...)`, `hexFacingName(...)`: bridge between canonical short ids (`n`, `ne`, ...) and consumer-friendly names (`north`, `northEast`, ...)
-- `hexFacingVector(layout, facing)`: get the projected screen-space delta for a facing in the active hex layout
-- `hexFacingFromScreenDelta(...)`: classify projected movement into one of the six hex facings
-- `mapHexFacings(...)`, `createHexFacingSpriteSet(...)`, `getHexFacingValue(...)`: build reusable facing-indexed assets without rewriting the same six-way boilerplate
-- `projectHexContentBox(layout, coord)`: find a conservative rectangular text box inside a hex
-- `projectHexContentRows(layout, coord)`: find the full shaped row-by-row text spans inside a hex
-- `drawHexTextBlock(...)`: render clipped/aligned multi-line content across the full usable hex interior
-- `createHexGridSprite(...)` now supports separate `fillStyle` and `borderStyle` inputs when neighboring tiles need shared borders to stay visually consistent
-- `drawTextBlockInRect(...)`: render aligned text into any rectangular region
-- `drawTextBlockInRows(...)`: render aligned text across arbitrary row spans
-- `plotLinePoints(from, to)`: rasterize a straight terminal-space line you can style as trails, tracers, or scanlines
+- parametric pointy-hex layouts
+- projected centers and anchors
+- label helpers
+- scalable hex templates
+- content boxes and full content-row spans
+- six-way facing helpers
+- compatibility helpers for long-form facing names such as `northEast`
 
-The fastest proof path is `pnpm demo:zoo`, then switch to page `2` and use `[` / `]`.
-Larger scales are generated as clean pointy hexes with single-cell borders rather
-than nearest-neighbor duplication of the base raster.
+The fastest manual check is `pnpm demo:zoo`, then switch to the hex lab page.
 
-## Consumer Notes
+## Docs
 
-`rndr-2d` keeps canonical hex ids short inside the renderer (`n`, `ne`, `se`,
-`s`, `sw`, `nw`), but accepts long-form names when that matches consumer
-contracts better:
+- [docs/architecture.md](docs/architecture.md): rendering model and public boundaries
+- [docs/architecture-illustrated.md](docs/architecture-illustrated.md): ASCII diagrams
+- [docs/roadmap.md](docs/roadmap.md): near-term direction
+- [docs/evals.md](docs/evals.md): invariants and test bar
+- [docs/research.md](docs/research.md): outside references and notes
 
-```ts
-normalizeHexFacing("northEast"); // "ne"
-rotateHexFacing("southWest", 1); // "nw"
-```
+## Development
 
-That should make `agent-game` integration less noisy, because its existing
-contracts and CLI renderer already use `north`, `northEast`, `southEast`,
-`south`, `southWest`, and `northWest`.
+Rules that matter in practice:
 
-The package also runs `pnpm build` from `prepare`, so a branch or git
-dependency has the `dist/` artifacts it exports without requiring a separate
-manual build step first.
+- keep the core rendering model pure
+- treat ANSI as a backend detail
+- add small primitives instead of giant abstractions
+- prefer reusable engine features over game-local shortcuts
+- add tests when behavior changes
+
+The first consumer is `agent-game`, and `agent-battle` is the next real port.
+That pressure is useful. It keeps the API honest.

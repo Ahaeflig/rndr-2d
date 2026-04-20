@@ -26,6 +26,7 @@
     "demo:png-braille": "tsx examples/png-braille.ts",
     "demo:review": "tsx examples/review-showcase.ts",
     "demo:zoo": "tsx examples/feature-zoo.ts",
+    "media:readme": "tsx scripts/generate-readme-media.ts",
     "prepare": "pnpm build",
     "review:artifacts": "tsx scripts/generate-review-artifacts.ts",
     "test": "vitest run",
