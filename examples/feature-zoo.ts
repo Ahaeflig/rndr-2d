@@ -37,7 +37,7 @@ Usage:
   pnpm demo:zoo -- --no-alt
 
 Runtime controls:
-  1/2/3 or Tab  switch pages
+  1/2/3/4 or Tab switch pages
   Arrows/HJKL   move selector
   Enter         move ship to selector in play page
   Q/E           rotate ship through 6 facings
@@ -105,7 +105,7 @@ function sleep(ms: number) {
 }
 
 function cyclePage(state: ZooState) {
-  const pages: ZooState["page"][] = ["play", "hex", "style"];
+  const pages: ZooState["page"][] = ["play", "hex", "style", "glow"];
   const index = pages.indexOf(state.page);
   state.page = pages[(index + 1) % pages.length] ?? "play";
   state.selector = clampSelectorToPage(state, state.selector);
@@ -139,6 +139,10 @@ function onKeypress(state: ZooState, key: readline.Key) {
       return;
     case "3":
       state.page = "style";
+      state.selector = clampSelectorToPage(state, state.selector);
+      return;
+    case "4":
+      state.page = "glow";
       state.selector = clampSelectorToPage(state, state.selector);
       return;
     case "?":

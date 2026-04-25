@@ -53,6 +53,26 @@ export type {
 } from "./braille.js";
 
 export {
+  DenseLightSurface,
+  HalfBlockLightSurface,
+  HybridLightSurface,
+  lightPulse,
+  lightShimmerSeed,
+  sampleLightColorRamp
+} from "./glow.js";
+export type {
+  DenseLightColor,
+  DenseLightSample,
+  DenseLightSurfaceOptions,
+  HalfBlockLightSurfaceOptions,
+  HybridLightSurfaceOptions,
+  LightColorRamp,
+  LightColorRampStop,
+  LightDitherMode,
+  LightPulseOptions
+} from "./glow.js";
+
+export {
   renderSurfacePlain,
   renderSurfaceWithAxes,
   summarizeSurface,

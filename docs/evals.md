@@ -23,6 +23,20 @@ These are the initial quality criteria for the library.
   scaled safe rectangle.
 - Dense braille rasters compile deterministically into the same cell output for
   identical micro-dot input.
+- Dense light rasters accumulate RGB energy additively before compiling to
+  terminal cells.
+- Dithered glow compilation remains deterministic for a fixed seed and avoids
+  converting bright fields into accidental solid blocks.
+- Ordered glow dithering remains deterministic and distinct from hash-noise
+  dithering.
+- Light color ramps map energy to predictable terminal RGB output.
+- Background-only glow cells can carry low-energy light without emitting a
+  foreground glyph.
+- Half-block light rasters can represent distinct upper and lower color samples
+  in a single terminal cell.
+- Hybrid light rasters preserve soft half-block background color underneath
+  dense braille highlights.
+- Temporal glow helpers are pure functions of frame inputs.
 - Dense raster extensions remain composable through the normal `RasterSource`
   and `Surface` APIs instead of bypassing the engine.
 

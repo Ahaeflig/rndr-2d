@@ -104,6 +104,40 @@ This is intentionally an extension, not a rewrite of the core unit. The atomic
 unit of composition is still a terminal cell; braille is a way to generate
 better graphics cells, not a reason to redefine what a `Cell` means.
 
+`DenseLightSurface` builds on that path for terminal-native glow:
+
+- accumulate RGB light energy in braille dot space
+- paint halos, rings, lines, polygons, ellipses, circles, and sparse sparkle fields
+- compile continuous energy fields into dithered braille dots
+- optionally map light energy through color ramps
+- use hash or ordered Bayer dithering for different falloff textures
+- emit background-only glow cells for low-energy light fields
+- keep glow deterministic and snapshot-friendly
+
+This is still not true optical bloom. It is a text-mode approximation that uses
+contrast, sparse activation, RGB ramps, and braille density to make bright
+effects read as luminous without leaving normal ANSI rendering.
+
+`HalfBlockLightSurface` explores a different tradeoff:
+
+- store two vertical light samples per terminal cell
+- compile them with `▀`/`▄` using foreground and background colors
+- paint the same core light primitives, including rings and halos
+- give up braille-level shape detail in exchange for smoother color gradients
+
+This is useful for larger glows, soft auras, and background light fields where
+color continuity matters more than tiny point detail.
+
+`HybridLightSurface` combines both tradeoffs:
+
+- render soft color mass with `HalfBlockLightSurface`
+- render crisp highlights with `DenseLightSurface`
+- merge the detail glyph over the soft layer while preserving the soft
+  background color
+
+Temporal helpers such as `lightPulse` and `lightShimmerSeed` stay pure. They do
+not own frame loops; they just make animated glow parameters deterministic.
+
 ## Public Boundaries
 
 ### Core

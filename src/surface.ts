@@ -3,7 +3,7 @@ import { pointInRect, type Point, type Rect } from "./geometry.js";
 import type { RasterSource } from "./raster.js";
 import type { CellStyle } from "./style.js";
 
-export type BlendMode = "over" | "under";
+export type BlendMode = "over" | "under" | "background";
 
 export interface BlitOptions {
   blendMode?: BlendMode;
@@ -19,6 +19,19 @@ function assertDimension(name: string, value: number) {
 
 function insideSurface(width: number, height: number, x: number, y: number) {
   return x >= 0 && y >= 0 && x < width && y < height;
+}
+
+function isBackgroundOnlyCell(cell: Cell) {
+  return (
+    cell.glyph === " " &&
+    !!cell.style?.background &&
+    !cell.style.foreground &&
+    !cell.style.bold &&
+    !cell.style.dim &&
+    !cell.style.italic &&
+    !cell.style.underline &&
+    !cell.style.inverse
+  );
 }
 
 export class Surface implements RasterSource {
@@ -135,10 +148,33 @@ export class Surface implements RasterSource {
           continue;
         }
 
+        const styledSourceCell = options.style ? withCellStyle(sourceCell, options.style) : sourceCell;
+
+        if (blendMode === "background" && isBackgroundOnlyCell(styledSourceCell)) {
+          const targetCell = this.cellAt(targetPoint.x, targetPoint.y);
+          const background = styledSourceCell.style?.background;
+
+          if (!background) {
+            continue;
+          }
+
+          this.setCell(
+            targetPoint.x,
+            targetPoint.y,
+            targetCell
+              ? createCell(targetCell.glyph, {
+                  ...(targetCell.style ?? {}),
+                  background
+                })
+              : styledSourceCell
+          );
+          continue;
+        }
+
         this.setCell(
           targetPoint.x,
           targetPoint.y,
-          options.style ? withCellStyle(sourceCell, options.style) : sourceCell
+          styledSourceCell
         );
       }
     }
@@ -160,4 +196,3 @@ export class Surface implements RasterSource {
     return lines;
   }
 }
-
