@@ -7,7 +7,10 @@ import {
   blitProjectedBrailleBillboard,
   createOrthographicProjection3D,
   createPerspectiveProjection3D,
+  drawProjectedHexGrid,
   fillProjectedPlaneCircle,
+  projectedHexPlaneCenterPoint,
+  projectedHexPlaneCorners,
   projectPointToBrailleDot,
   rgbColor,
   screenPointToBrailleDot,
@@ -210,5 +213,50 @@ describe("3D projection primitives", () => {
     );
 
     expect(countDots(surface)).toBeGreaterThan(0);
+  });
+
+  it("renders projected braille hex grids on the camera ground plane", () => {
+    const surface = new BrailleSurface(32, 16, {
+      activationThreshold: 0.2
+    });
+    const projection = createPerspectiveProjection3D({
+      position: { x: 0, y: 10, z: 8 },
+      target: { x: 0, y: 0, z: 0 },
+      viewportSize: { width: surface.width, height: surface.height },
+      verticalFovDegrees: 42,
+      screenCenter: { x: surface.width / 2, y: surface.height * 0.58 }
+    });
+
+    drawProjectedHexGrid(surface, {
+      projection,
+      board: { cols: 3, rows: 3 },
+      radius: 1,
+      fill: (coord) => ({
+        value: coord.r === 2 ? 0.65 : 0.35,
+        style: { foreground: coord.r === 2 ? ansiColor(45) : ansiColor(242) }
+      }),
+      stroke: { value: 1, style: { foreground: rgbColor(180, 190, 210) } }
+    });
+
+    const near = projection.project(projectedHexPlaneCenterPoint({ cols: 3, rows: 3 }, { q: 1, r: 2 }));
+    const far = projection.project(projectedHexPlaneCenterPoint({ cols: 3, rows: 3 }, { q: 1, r: 0 }));
+
+    expect(countDots(surface)).toBeGreaterThan(20);
+    expect(surface.toSurface().toLines().some((line) => line.trim().length > 0)).toBe(true);
+    expect(near.visible).toBe(true);
+    expect(far.visible).toBe(true);
+    expect(near.point.y).toBeGreaterThan(far.point.y);
+    expect(near.scale).toBeGreaterThan(far.scale);
+  });
+
+  it("uses flat-top corners for projected odd-q hex planes by default", () => {
+    const center = projectedHexPlaneCenterPoint({ cols: 1, rows: 1 }, { q: 0, r: 0 });
+    const corners = projectedHexPlaneCorners({ cols: 1, rows: 1 }, { q: 0, r: 0 });
+
+    expect(corners).toHaveLength(6);
+    expect(corners[0]?.x).toBeCloseTo(center.x + 1);
+    expect(corners[0]?.y).toBeCloseTo(center.y);
+    expect(corners[1]?.y).toBeCloseTo(corners[2]?.y ?? 0);
+    expect(corners[4]?.y).toBeCloseTo(corners[5]?.y ?? 0);
   });
 });

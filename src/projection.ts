@@ -5,6 +5,7 @@ import {
   type BraillePaint
 } from "./braille.js";
 import type { DenseLightColor, DenseLightSurface } from "./glow.js";
+import type { AxialCoord, HexBoardSize } from "./hex.js";
 import type { Point, Size } from "./geometry.js";
 import type { CellStyle } from "./style.js";
 
@@ -104,9 +105,29 @@ export interface ProjectedLightPlaneRingInput {
   segments?: number;
 }
 
+export interface ProjectedHexPlaneLayout {
+  /** Hex circumradius in world units. Default 1. */
+  radius?: number;
+  /** World-space center of the whole board. Default { x: 0, y: 0, z: 0 }. */
+  center?: Point3;
+  /**
+   * Hex rotation in radians. Default 0deg gives flat top/bottom hexes,
+   * matching odd-q boards that advance mostly along screen depth.
+   */
+  rotationRadians?: number;
+}
+
+export interface ProjectedHexGridInput extends ProjectedHexPlaneLayout {
+  projection: Projection3D;
+  board: HexBoardSize;
+  fill?: BraillePaint | CellStyle | null | ((coord: AxialCoord) => BraillePaint | CellStyle | null | undefined);
+  stroke?: BraillePaint | CellStyle | null | ((coord: AxialCoord) => BraillePaint | CellStyle | null | undefined);
+}
+
 const DEFAULT_UP: Point3 = { x: 0, y: 0, z: 1 };
 const GROUND_X: Point3 = { x: 1, y: 0, z: 0 };
 const GROUND_Y: Point3 = { x: 0, y: 1, z: 0 };
+const DEFAULT_HEX_ROTATION_RADIANS = 0;
 
 function assertFiniteNumber(name: string, value: number) {
   if (!Number.isFinite(value)) {
@@ -125,6 +146,16 @@ function assertPositive(name: string, value: number) {
 function assertViewport(size: Size) {
   assertPositive("Projection viewport width", size.width);
   assertPositive("Projection viewport height", size.height);
+}
+
+function assertBoardSize(board: HexBoardSize) {
+  if (!Number.isInteger(board.cols) || board.cols <= 0) {
+    throw new RangeError("Projected hex board cols must be a positive integer.");
+  }
+
+  if (!Number.isInteger(board.rows) || board.rows <= 0) {
+    throw new RangeError("Projected hex board rows must be a positive integer.");
+  }
 }
 
 function add3(a: Point3, b: Point3): Point3 {
@@ -397,6 +428,135 @@ function planeCirclePoints(input: {
   }
 
   return points;
+}
+
+function hexPlaneRawCenter(coord: AxialCoord, radius: number) {
+  const hexHeight = Math.sqrt(3) * radius;
+
+  return {
+    x: coord.q * 1.5 * radius,
+    y: (coord.r + (Math.abs(coord.q) % 2) * 0.5) * hexHeight
+  };
+}
+
+function hexPlaneBoardCenter(board: HexBoardSize, radius: number) {
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+
+  for (let q = 0; q < board.cols; q += 1) {
+    for (let r = 0; r < board.rows; r += 1) {
+      const center = hexPlaneRawCenter({ q, r }, radius);
+      minX = Math.min(minX, center.x);
+      minY = Math.min(minY, center.y);
+      maxX = Math.max(maxX, center.x);
+      maxY = Math.max(maxY, center.y);
+    }
+  }
+
+  return {
+    x: (minX + maxX) / 2,
+    y: (minY + maxY) / 2
+  };
+}
+
+function projectedHexPlaneRadius(layout: ProjectedHexPlaneLayout) {
+  const radius = layout.radius ?? 1;
+  assertPositive("Projected hex radius", radius);
+  return radius;
+}
+
+function projectedHexPlaneCenter(layout: ProjectedHexPlaneLayout) {
+  return layout.center ?? { x: 0, y: 0, z: 0 };
+}
+
+export function projectedHexPlaneCenterPoint(
+  board: HexBoardSize,
+  coord: AxialCoord,
+  layout: ProjectedHexPlaneLayout = {}
+): Point3 {
+  assertBoardSize(board);
+  const radius = projectedHexPlaneRadius(layout);
+  const raw = hexPlaneRawCenter(coord, radius);
+  const boardCenter = hexPlaneBoardCenter(board, radius);
+  const center = projectedHexPlaneCenter(layout);
+
+  return {
+    x: center.x + raw.x - boardCenter.x,
+    y: center.y + raw.y - boardCenter.y,
+    z: center.z
+  };
+}
+
+export function projectedHexPlaneCorners(
+  board: HexBoardSize,
+  coord: AxialCoord,
+  layout: ProjectedHexPlaneLayout = {}
+): Point3[] {
+  const center = projectedHexPlaneCenterPoint(board, coord, layout);
+  const radius = projectedHexPlaneRadius(layout);
+  const rotation = layout.rotationRadians ?? DEFAULT_HEX_ROTATION_RADIANS;
+  const points: Point3[] = [];
+
+  for (let index = 0; index < 6; index += 1) {
+    const angle = rotation + (Math.PI * 2 * index) / 6;
+    points.push({
+      x: center.x + Math.cos(angle) * radius,
+      y: center.y + Math.sin(angle) * radius,
+      z: center.z
+    });
+  }
+
+  return points;
+}
+
+function resolveProjectedHexPaint(
+  paint: ProjectedHexGridInput["fill"] | ProjectedHexGridInput["stroke"],
+  coord: AxialCoord
+) {
+  return typeof paint === "function" ? paint(coord) ?? null : paint ?? null;
+}
+
+export function drawProjectedHexGrid(surface: BrailleSurface, input: ProjectedHexGridInput) {
+  assertBoardSize(input.board);
+
+  const coords: AxialCoord[] = [];
+  for (let q = 0; q < input.board.cols; q += 1) {
+    for (let r = 0; r < input.board.rows; r += 1) {
+      coords.push({ q, r });
+    }
+  }
+
+  for (const coord of coords) {
+    const fill = resolveProjectedHexPaint(input.fill, coord);
+
+    if (!fill) {
+      continue;
+    }
+
+    fillProjectedPolygon(
+      surface,
+      input.projection,
+      projectedHexPlaneCorners(input.board, coord, input),
+      fill
+    );
+  }
+
+  for (const coord of coords) {
+    const stroke = resolveProjectedHexPaint(input.stroke, coord);
+
+    if (!stroke) {
+      continue;
+    }
+
+    strokeProjectedPolygon(
+      surface,
+      input.projection,
+      projectedHexPlaneCorners(input.board, coord, input),
+      stroke
+    );
+  }
 }
 
 export function strokeProjectedPlaneCircle(surface: BrailleSurface, input: ProjectedPlaneCircleInput) {
