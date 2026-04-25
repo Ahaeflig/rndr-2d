@@ -89,6 +89,47 @@ axial coords + unit state
    ANSI terminal frame
 ```
 
+## Dense Light Path
+
+```text
+light authoring
+===============
+
+circle / ring / halo / line / polygon
+        |
+        v
+  +-------------------+
+  | additive RGB grid |
+  +-------------------+
+        |
+        +--> DenseLightSurface ----> braille dots for crisp detail
+        |
+        +--> HalfBlockLightSurface -> upper/lower color samples
+        |
+        +--> HybridLightSurface ---> soft base + crisp highlights
+        |
+        v
+    RasterSource
+        |
+        v
+      Surface
+        |
+        v
+  ANSI terminal frame
+```
+
+```text
+one terminal cell
+=================
+
+braille detail:           half-block color:
+
+  2x4 dots                  upper sample -> foreground
+  compile to ⣿             lower sample -> background or foreground
+
+  useful for shape          useful for smooth glow
+```
+
 ## Review Checklist
 
 - `Cell` owns glyph + style, never ANSI bytes.
@@ -96,4 +137,4 @@ axial coords + unit state
 - `Surface` is the composition target.
 - ANSI rendering is the final serialization step.
 - Geometry helpers such as hexes still go through the same raster model.
-
+- Glow helpers still compile to `RasterSource` objects before composition.

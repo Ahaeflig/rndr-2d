@@ -11,6 +11,8 @@ Shipped in this scaffold:
 - ANSI serialization
 - sprite rotation by quarter turns
 - initial hex-grid module
+- dense light primitives for braille glow, half-block glow, hybrid glow, color
+  ramps, background glow, ordered dithering, and temporal pulse helpers
 
 ## Phase 1: Consumer Extraction
 
@@ -26,6 +28,8 @@ Likely work:
   facing-indexed asset helpers
 - decide where braille-backed art layers help the consumer without replacing
   readable text rendering
+- decide where glow-backed cue layers improve targeting, trails, and objective
+  emphasis without reducing board readability
 - add missing primitives discovered during the port
 
 ## Phase 2: Animation Primitives
@@ -58,7 +62,8 @@ Possible directions:
 
 - isometric templates
 - tilemap helpers
-- additional dense renderers beyond braille where the abstraction stays clean
-- lighting and fog approximations in text
+- additional dense renderers beyond braille and half-blocks where the
+  abstraction stays clean
+- lighting and fog approximations built on reusable light surfaces
 - particle-style effects
-- palette utilities
+- richer palette utilities

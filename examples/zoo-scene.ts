@@ -1,5 +1,8 @@
 import {
   DEFAULT_HEX_LAYOUT,
+  DenseLightSurface,
+  HalfBlockLightSurface,
+  HybridLightSurface,
   Sprite,
   Surface,
   ansiColor,
@@ -15,11 +18,15 @@ import {
   rgbColor,
   scaleHexLayout,
   summarizeSurface,
+  lightPulse,
+  lightShimmerSeed,
   type AxialCoord,
   type CellStyle,
+  type DenseLightColor,
   type HexFacing,
   type HexBoardSize,
   type HexLayout,
+  type LightColorRamp,
   type Point,
   type Rect,
   type SurfaceDiffStats,
@@ -27,7 +34,7 @@ import {
 } from "../src/index.js";
 import { DEMO_HEX_FACING_LABELS, buildDemoHexShipSet } from "./demo-hex-ships.js";
 
-export type ZooPage = "play" | "hex" | "style";
+export type ZooPage = "play" | "hex" | "style" | "glow";
 
 export interface ZooState {
   page: ZooPage;
@@ -60,6 +67,17 @@ const PLAY_BOARD_ORIGIN = { x: 1, y: 4 } as const;
 const PLAY_BOARD_SIZE = { cols: 5, rows: 3 } as const;
 const PATH_DURATION_MS = 7000;
 const TRAIL_DURATION_MS = 1600;
+const GLOW_PANEL_SIZE = { width: 14, height: 8 } as const;
+const GLOW_RAMP = [
+  { energy: 0, color: { r: 3, g: 18, b: 72 } },
+  { energy: 0.7, color: { r: 35, g: 92, b: 255 } },
+  { energy: 1.3, color: { r: 58, g: 224, b: 255 } },
+  { energy: 2.1, color: { r: 242, g: 252, b: 255 } }
+] satisfies LightColorRamp;
+const GLOW_BLUE = { r: 35, g: 92, b: 255 } satisfies DenseLightColor;
+const GLOW_CYAN = { r: 58, g: 224, b: 255 } satisfies DenseLightColor;
+const GLOW_WHITE = { r: 242, g: 252, b: 255 } satisfies DenseLightColor;
+const GLOW_MAGENTA = { r: 220, g: 82, b: 255 } satisfies DenseLightColor;
 
 const STAR_POINTS = [
   { x: 1, y: 1, phase: 0.0 },
@@ -296,7 +314,11 @@ export function getPageBoardForState(state: ZooState): HexBoardSize {
     return { cols: 2, rows: 1 };
   }
 
-  return { cols: 4, rows: 2 };
+  if (state.page === "style") {
+    return { cols: 4, rows: 2 };
+  }
+
+  return { cols: 1, rows: 1 };
 }
 
 export function clampSelectorToPage(state: ZooState, coord: AxialCoord): AxialCoord {
@@ -478,7 +500,7 @@ function createPlayPage(input: ZooFrameInput) {
   hud.drawText({ x: 2, y: 13 }, "Enter move ship", { foreground: ansiColor(244) });
   hud.drawText({ x: 2, y: 14 }, "Q/E rotate 6-way", { foreground: ansiColor(244) });
   hud.drawText({ x: 2, y: 15 }, "Space autoplay", { foreground: ansiColor(244) });
-  hud.drawText({ x: 2, y: 17 }, "1 play  2 hex  3 style", {
+  hud.drawText({ x: 2, y: 17 }, "1 play 2 hex 3 style 4 glow", {
     foreground: ansiColor(250)
   });
   hud.drawText({ x: 2, y: 18 }, "Arrows/HJKL move", { foreground: ansiColor(250) });
@@ -792,10 +814,178 @@ function createStylePage(input: ZooFrameInput) {
   });
 }
 
+function makeGlowDensePanel(input: ZooFrameInput) {
+  const pulse = input.state.showPulse
+    ? lightPulse({ frame: input.frameNumber, period: 36, base: 0.88, amplitude: 0.28 })
+    : 1;
+  const surface = new DenseLightSurface(GLOW_PANEL_SIZE.width, GLOW_PANEL_SIZE.height, {
+    colorRamp: GLOW_RAMP,
+    background: { r: 0, g: 0, b: 0 },
+    ditherMode: "bayer4",
+    ditherSeed: lightShimmerSeed(3, input.state.showTrail ? input.frameNumber : 0, 1),
+    minEnergy: 0.02,
+    minDotDensity: 0.01,
+    maxDotDensity: 0.68,
+    colorScale: 1.2,
+    backgroundGlow: true,
+    backgroundGlowMinEnergy: 0.1,
+    backgroundGlowScale: 0.46
+  });
+  const center = {
+    x: surface.dotWidth / 2,
+    y: surface.dotHeight / 2
+  };
+
+  surface.addRing(center, 10, 7, GLOW_BLUE, 0.3 * pulse);
+  surface.addRing(center, 10, 3, GLOW_CYAN, 0.72 * pulse);
+  surface.addCircle({ x: center.x - 5, y: center.y - 5 }, 2.2, GLOW_WHITE, 0.75 * pulse);
+
+  return surface;
+}
+
+function makeGlowHalfBlockPanel(input: ZooFrameInput) {
+  const pulse = input.state.showPulse
+    ? lightPulse({ frame: input.frameNumber, period: 42, base: 0.9, amplitude: 0.24, phase: 0.8 })
+    : 1;
+  const surface = new HalfBlockLightSurface(GLOW_PANEL_SIZE.width, GLOW_PANEL_SIZE.height, {
+    colorRamp: GLOW_RAMP,
+    background: { r: 0, g: 0, b: 0 },
+    minEnergy: 0.42,
+    backgroundGlow: true,
+    backgroundGlowMinEnergy: 0.02,
+    backgroundGlowScale: 1,
+    colorScale: 1.08
+  });
+  const center = {
+    x: surface.sampleWidth / 2,
+    y: surface.sampleHeight / 2
+  };
+
+  surface.addHalo(center, 12, GLOW_BLUE, 0.34 * pulse, 1.5);
+  surface.addRing(center, 6, 4, GLOW_CYAN, 0.64 * pulse);
+  surface.addRing(center, 6, 1.5, GLOW_WHITE, 0.95 * pulse);
+
+  return surface;
+}
+
+function makeGlowHybridPanel(input: ZooFrameInput) {
+  const pulse = input.state.showPulse
+    ? lightPulse({ frame: input.frameNumber, period: 48, base: 0.9, amplitude: 0.3, phase: 1.3 })
+    : 1;
+  const surface = new HybridLightSurface(GLOW_PANEL_SIZE.width, GLOW_PANEL_SIZE.height, {
+    halfBlock: {
+      colorRamp: GLOW_RAMP,
+      background: { r: 0, g: 0, b: 0 },
+      backgroundGlow: true,
+      backgroundGlowMinEnergy: 0.02,
+      minEnergy: 0.03,
+      colorScale: 1.05
+    },
+    dense: {
+      colorRamp: GLOW_RAMP,
+      background: { r: 0, g: 0, b: 0 },
+      ditherMode: "bayer4",
+      ditherSeed: lightShimmerSeed(11, input.state.showTrail ? input.frameNumber : 0, 1),
+      minEnergy: 0.06,
+      minDotDensity: 0,
+      maxDotDensity: 0.58,
+      colorScale: 1.2
+    }
+  });
+  const softCenter = {
+    x: surface.soft.sampleWidth / 2,
+    y: surface.soft.sampleHeight / 2
+  };
+  const detailCenter = {
+    x: surface.detail.dotWidth / 2,
+    y: surface.detail.dotHeight / 2
+  };
+
+  surface.soft.addHalo(softCenter, 12, GLOW_BLUE, 0.36 * pulse, 1.5);
+  surface.soft.addRing(softCenter, 6, 4, GLOW_CYAN, 0.52 * pulse);
+  surface.detail.addRing(detailCenter, 11, 2.2, GLOW_WHITE, 0.88 * pulse);
+  surface.detail.addCircle({ x: detailCenter.x + 5, y: detailCenter.y - 3 }, 1.6, GLOW_MAGENTA, 0.74 * pulse);
+
+  return surface;
+}
+
+function drawGlowPanelLabels(surface: Surface) {
+  surface.drawText({ x: 2, y: 3 }, "Dense braille", {
+    foreground: ansiColor(250),
+    bold: true
+  });
+  surface.drawText({ x: 19, y: 3 }, "Background glow", {
+    foreground: ansiColor(250),
+    bold: true
+  });
+  surface.drawText({ x: 36, y: 3 }, "Hybrid", {
+    foreground: ansiColor(250),
+    bold: true
+  });
+}
+
+function createGlowPage(input: ZooFrameInput) {
+  const frameBase = new Surface(FRAME_SIZE.width, FRAME_SIZE.height, createCell(" ", {
+    background: rgbColor(0, 0, 0)
+  }));
+  drawGlowPanelLabels(frameBase);
+  drawRect(frameBase, { x: 1, y: 4, width: 16, height: 10 }, { foreground: ansiColor(238) });
+  drawRect(frameBase, { x: 18, y: 4, width: 16, height: 10 }, { foreground: ansiColor(238) });
+  drawRect(frameBase, { x: 35, y: 4, width: 16, height: 10 }, { foreground: ansiColor(238) });
+  frameBase.blit(makeGlowDensePanel(input), { x: 2, y: 5 });
+  frameBase.blit(makeGlowHalfBlockPanel(input), { x: 19, y: 5 });
+  frameBase.blit(makeGlowHybridPanel(input), { x: 36, y: 5 });
+
+  frameBase.drawText({ x: 2, y: 15 }, "Palette ramps map energy to hand-tuned color.", {
+    foreground: ansiColor(250)
+  });
+  frameBase.drawText({ x: 2, y: 16 }, "Background glow carries low-energy light without glyph noise.", {
+    foreground: ansiColor(250)
+  });
+  frameBase.drawText({ x: 2, y: 17 }, "Hybrid glow keeps a soft base under crisp braille highlights.", {
+    foreground: ansiColor(250)
+  });
+
+  const hud = makePanel("GLOW LAB");
+  hudLine(hud, 3, "page", "4 glow");
+  hudLine(hud, 4, "pulse", input.state.showPulse ? "animated" : "steady");
+  hudLine(hud, 5, "dither", input.state.showTrail ? "shimmer" : "fixed");
+  hudLine(hud, 6, "stars", input.state.showStars ? "on" : "off");
+  hudLine(hud, 7, "palette", "energy ramp");
+  hud.drawText({ x: 2, y: 10 }, "P toggles pulse", { foreground: ansiColor(244) });
+  hud.drawText({ x: 2, y: 11 }, "T toggles shimmer", { foreground: ansiColor(244) });
+  hud.drawText({ x: 2, y: 12 }, "S toggles stars", { foreground: ansiColor(244) });
+  hud.drawText({ x: 2, y: 14 }, "This page proves glow", { foreground: ansiColor(250) });
+  hud.drawText({ x: 2, y: 15 }, "as composable raster", { foreground: ansiColor(250) });
+  hud.drawText({ x: 2, y: 16 }, "sources in the engine.", { foreground: ansiColor(250) });
+
+  return composeScene({
+    size: FRAME_SIZE,
+    background: createCell(" ", {
+      background: rgbColor(0, 0, 0)
+    }),
+    layers: [
+      ...(input.state.showStars
+        ? [{ name: "stars", z: 0, items: [{ source: twinkleSurface(input.elapsedMs), position: { x: 0, y: 0 } }] }]
+        : []),
+      {
+        name: "glow",
+        z: 1,
+        items: [{ source: frameBase, position: { x: 0, y: 0 } }]
+      },
+      {
+        name: "hud",
+        z: 2,
+        items: [{ source: hud, position: { x: HUD_RECT.x, y: HUD_RECT.y } }]
+      }
+    ]
+  });
+}
+
 function createHelpOverlay() {
   const surface = new Surface(FRAME_SIZE.width, FRAME_SIZE.height);
-  const panel = new Surface(48, 16);
-  drawRect(panel, { x: 0, y: 0, width: 48, height: 16 }, {
+  const panel = new Surface(48, 17);
+  drawRect(panel, { x: 0, y: 0, width: 48, height: 17 }, {
     foreground: ansiColor(226)
   });
   panel.drawText({ x: 2, y: 1 }, "Feature Zoo Controls", {
@@ -812,6 +1002,7 @@ function createHelpOverlay() {
     "[ and ]: change hex scale in hex lab",
     "B: toggle usable hex row spans",
     "C: cycle palette",
+    "4: glow lab",
     "D: toggle debug footer",
     "R: reset state",
     "Esc or Ctrl-C: exit",
@@ -824,7 +1015,7 @@ function createHelpOverlay() {
     });
   }
 
-  surface.blit(panel, { x: 16, y: 4 });
+  surface.blit(panel, { x: 16, y: 3 });
   return surface;
 }
 
@@ -877,7 +1068,9 @@ export function buildZooFrame(input: ZooFrameInput & { terminalColumns: number; 
       ? createPlayPage(input)
       : input.state.page === "hex"
         ? createHexPage(input)
-        : createStylePage(input);
+        : input.state.page === "style"
+          ? createStylePage(input)
+          : createGlowPage(input);
 
   const stats = summarizeSurface(pageFrame);
   pageFrame.drawText({ x: 2, y: 0 }, "rndr-2d feature zoo", {

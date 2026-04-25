@@ -19,6 +19,9 @@ still move as real game integrations push on it.
 - full-frame ANSI rendering and diff rendering
 - hex-grid projection, labels, scalable hex layouts, and six-way hex facing
 - braille dense rendering for text-mode effects, silhouettes, and terrain detail
+- additive dense light surfaces for dithered terminal glow and neon effects
+- half-block light surfaces for smoother two-sample color gradients
+- light color ramps, ordered dithering, hybrid glow layers, and temporal pulse helpers
 - deterministic helpers that are easy to snapshot and test
 
 `rndr-2d` is not a widget toolkit. It does not handle input, layout management,
@@ -34,6 +37,7 @@ The library works well for:
 - HUD panels and status overlays
 - projectile trails, pulses, scanlines, and similar effects
 - denser art layers built with Unicode braille cells
+- terminal-native glow effects built from additive dense light and dithered braille
 
 Parts that are still intentionally missing:
 
@@ -52,6 +56,8 @@ pnpm check
 pnpm demo:zoo
 pnpm demo:live
 pnpm demo:dense
+pnpm demo:glow-techniques
+pnpm demo:halfblock-glow
 pnpm demo:png-braille
 ```
 
@@ -60,6 +66,8 @@ Useful review commands:
 - `pnpm demo:zoo`: interactive feature zoo
 - `pnpm demo:live`: animated renderer with diff updates
 - `pnpm demo:dense`: coarse vs braille comparison
+- `pnpm demo:glow-techniques`: palette ramps, ordered dithering, background glow, hybrid glow, and temporal pulse proof
+- `pnpm demo:halfblock-glow`: braille glow vs half-block color glow comparison
 - `pnpm demo:png-braille`: image-to-braille proof path
 - `pnpm review:artifacts`: writes text review files to `docs/generated/`
 - `pnpm media:readme`: refreshes the README media; the sprite-based braille showcase is optional and rebuilds when a local source is configured
@@ -175,10 +183,25 @@ first hard consumer. The public hex exports include:
 
 The fastest manual check is `pnpm demo:zoo`, then switch to the hex lab page.
 
+## Glow Effects
+
+Glow rendering is an engine primitive for terminal-native light effects:
+
+- use `DenseLightSurface` for braille detail and crisp highlights
+- use `HalfBlockLightSurface` for smoother two-sample color gradients
+- use `HybridLightSurface` when you want soft color mass under sharp detail
+- turn on background glow for the strongest static glow illusion
+
+Run `pnpm demo:zoo` and switch to page `4`, or run
+`pnpm demo:glow-techniques` for a focused comparison.
+
+See [docs/glow.md](docs/glow.md) for usage guidance and tradeoffs.
+
 ## Docs
 
 - [docs/architecture.md](docs/architecture.md): rendering model and public boundaries
 - [docs/architecture-illustrated.md](docs/architecture-illustrated.md): ASCII diagrams
+- [docs/glow.md](docs/glow.md): terminal glow primitives and tradeoffs
 - [docs/roadmap.md](docs/roadmap.md): near-term direction
 - [docs/evals.md](docs/evals.md): invariants and test bar
 - [docs/research.md](docs/research.md): outside references and notes
