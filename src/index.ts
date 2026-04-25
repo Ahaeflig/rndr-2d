@@ -125,6 +125,35 @@ export type {
 
 export type { RasterSource } from "./raster.js";
 
+export {
+  addProjectedLightDot,
+  addProjectedLightLine,
+  addProjectedLightPlaneRing,
+  blitProjectedBrailleBillboard,
+  createOrthographicProjection3D,
+  createPerspectiveProjection3D,
+  drawProjectedLine,
+  fillProjectedPlaneCircle,
+  fillProjectedPolygon,
+  paintProjectedDot,
+  projectPointToBrailleDot,
+  screenPointToBrailleDot,
+  strokeProjectedPlaneCircle,
+  strokeProjectedPolygon
+} from "./projection.js";
+export type {
+  CameraBasis3D,
+  OrthographicProjection3DInput,
+  PerspectiveProjection3DInput,
+  Point3,
+  ProjectedBrailleBillboardAnchor,
+  ProjectedBrailleBillboardInput,
+  ProjectedLightPlaneRingInput,
+  ProjectedPlaneCircleInput,
+  ProjectedPoint3D,
+  Projection3D
+} from "./projection.js";
+
 export { composeScene } from "./scene.js";
 export type { Layer, LayerItem, Scene } from "./scene.js";
 

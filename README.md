@@ -19,6 +19,7 @@ still move as real game integrations push on it.
 - full-frame ANSI rendering and diff rendering
 - hex-grid projection, labels, scalable hex layouts, and six-way hex facing
 - braille dense rendering for text-mode effects, silhouettes, and terrain detail
+- look-at 3D projection helpers for tilted braille worlds and billboards
 - additive dense light surfaces for dithered terminal glow and neon effects
 - half-block light surfaces for smoother two-sample color gradients
 - light color ramps, ordered dithering, hybrid glow layers, and temporal pulse helpers
@@ -37,6 +38,7 @@ The library works well for:
 - HUD panels and status overlays
 - projectile trails, pulses, scanlines, and similar effects
 - denser art layers built with Unicode braille cells
+- Pokemon-like tilted world views built from projected braille geometry
 - terminal-native glow effects built from additive dense light and dithered braille
 
 Parts that are still intentionally missing:
@@ -59,6 +61,7 @@ pnpm demo:dense
 pnpm demo:glow-techniques
 pnpm demo:halfblock-glow
 pnpm demo:png-braille
+pnpm demo:projection-depth
 ```
 
 Useful review commands:
@@ -69,6 +72,7 @@ Useful review commands:
 - `pnpm demo:glow-techniques`: palette ramps, ordered dithering, background glow, hybrid glow, and temporal pulse proof
 - `pnpm demo:halfblock-glow`: braille glow vs half-block color glow comparison
 - `pnpm demo:png-braille`: image-to-braille proof path
+- `pnpm demo:projection-depth`: interactive projected-braille depth check with camera and asset movement
 - `pnpm review:artifacts`: writes text review files to `docs/generated/`
 - `pnpm media:readme`: refreshes the README media; the sprite-based braille showcase is optional and rebuilds when a local source is configured
 

@@ -26,6 +26,7 @@
     "demo:glow-techniques": "tsx examples/glow-techniques.ts",
     "demo:halfblock-glow": "tsx examples/halfblock-glow.ts",
     "demo:neon": "tsx examples/neon-braille.ts",
+    "demo:projection-depth": "tsx examples/projection-depth-test.ts",
     "demo:braille-viewer": "tsx examples/braille-viewer.ts",
     "demo:overview": "tsx examples/overview.ts",
     "demo:png-braille": "tsx examples/png-braille.ts",

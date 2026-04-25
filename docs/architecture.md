@@ -138,6 +138,21 @@ color continuity matters more than tiny point detail.
 Temporal helpers such as `lightPulse` and `lightShimmerSeed` stay pure. They do
 not own frame loops; they just make animated glow parameters deterministic.
 
+### 8. Projection Helpers
+
+Projection helpers map simple 3D world coordinates into the existing continuous
+screen-cell coordinate system:
+
+- look-at perspective projection for tilted worlds where distance changes scale
+- look-at orthographic projection for fixed Pokemon-like camera angles
+- projected braille points, lines, polygons, plane circles, and billboards
+- projected dense-light dots, lines, and plane rings
+
+These helpers do not introduce a scene graph, z-buffer, or terminal runtime.
+They are pure geometry plus explicit raster writes into `BrailleSurface` or
+`DenseLightSurface`, so the composed result still flows through the normal
+`RasterSource` and `Surface` APIs.
+
 ## Public Boundaries
 
 ### Core
@@ -159,6 +174,7 @@ These are allowed to be opinionated if they are still reusable across games:
 - hex layouts
 - hex facing maps and sprite sets
 - dense raster compilers such as braille surfaces
+- 3D-to-cell projection helpers for braille geometry and dense light
 - sprite glyph remappers for rotation
 - tile templates
 - animation helpers based on pure interpolation

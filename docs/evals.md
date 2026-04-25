@@ -39,6 +39,12 @@ These are the initial quality criteria for the library.
 - Temporal glow helpers are pure functions of frame inputs.
 - Dense raster extensions remain composable through the normal `RasterSource`
   and `Surface` APIs instead of bypassing the engine.
+- 3D projection helpers map identical world/camera inputs to deterministic
+  continuous screen-cell points.
+- Projected braille billboards scale with perspective depth while compiling
+  back through ordinary `BrailleSurface` cells.
+- Projected dense-light helpers use the same world-to-screen projection path as
+  projected braille geometry.
 
 ## Test Requirements
 

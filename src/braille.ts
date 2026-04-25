@@ -318,11 +318,14 @@ export class BrailleSurface implements RasterSource {
   }
 
   paintDot(x: number, y: number, fill: BraillePaint | CellStyle | null) {
-    if (!this.insideDots(x, y)) {
+    const dotX = Math.round(x);
+    const dotY = Math.round(y);
+
+    if (!this.insideDots(dotX, dotY)) {
       return;
     }
 
-    this.dots[this.dotIndex(x, y)] = cloneDot(normalizePaint(fill));
+    this.dots[this.dotIndex(dotX, dotY)] = cloneDot(normalizePaint(fill));
     this.invalidate();
   }
 
